@@ -1,0 +1,176 @@
+\chapter{Cơ sở lý thuyết}
+
+\section{Vi điều khiển ESP32}
+
+ESP32 là vi điều khiển do Espressif Systems phát triển, tích hợp WiFi và
+Bluetooth, được sử dụng rộng rãi trong các ứng dụng IoT. Dự án sử dụng
+board ESP32-CAM tích hợp sẵn khe cắm camera và hỗ trợ PSRAM mở rộng.
+
+\begin{table}[htbp]
+\centering
+\caption{Thông số phần cứng ESP32-CAM}
+\label{tab:esp32-hardware}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.3\linewidth} >{\raggedright\arraybackslash}p{0.6\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thành phần}} & \textcolor{white}{\textbf{Thông số}} \\
+\midrule
+\rowcolor{rowgray} Board & ESP32-CAM với PSRAM \\
+Vi xử lý & Xtensa LX6 dual-core, 240 MHz \\
+\rowcolor{rowgray} Camera & OV5640, JPEG, QVGA (320$\times$240) mặc định, hỗ trợ đến UXGA (1600$\times$1200) \\
+Microphone & INMP441 (I2S digital), 16 kHz, mono \\
+\rowcolor{rowgray} Kết nối & WiFi 802.11 b/g/n \\
+Bộ nhớ & 520 KB SRAM + 4 MB PSRAM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Giao thức I2S}
+
+I2S (Inter-IC Sound) là giao thức truyền thông nối tiếp đồng bộ được thiết kế
+chuyên biệt cho dữ liệu âm thanh số. Giao thức sử dụng 3 đường tín hiệu:
+
+\begin{itemize}
+\item \textbf{SCK (Serial Clock):} Xung nhịp đồng bộ dữ liệu.
+\item \textbf{WS (Word Select):} Chọn kênh trái (0) hoặc kênh phải (1).
+\item \textbf{SD (Serial Data):} Đường dữ liệu nối tiếp.
+\end{itemize}
+
+Microphone INMP441 hỗ trợ I2S với độ phân giải 18-bit, đóng gói trong word
+32-bit. ESP32 hoạt động ở chế độ I2S Master RX, nhận dữ liệu từ microphone.
+
+\subsection{Giao thức TCP}
+
+TCP (Transmission Control Protocol) đảm bảo truyền dữ liệu tin cậy, có thứ tự
+giữa ESP32 và server. Dự án sử dụng TCP cho cả stream audio (port 3002) và
+video (port 3001), đảm bảo không mất frame hay mẫu âm thanh.
+
+\section{Mô hình khử nhiễu DTLN}
+
+DTLN (Dual-signal Transformation LSTM Network) là mô hình khử nhiễu giọng nói
+được đề xuất bởi Westhausen và Meyer (2020), thiết kế cho xử lý thời gian thực
+trên thiết bị tài nguyên hạn chế.
+
+\begin{table}[htbp]
+\centering
+\caption{Các thông số chính của mô hình DTLN}
+\label{tab:dtln-params}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.45\linewidth} >{\centering\arraybackslash}p{0.45\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thông số}} & \textcolor{white}{\textbf{Giá trị}} \\
+\midrule
+\rowcolor{rowgray} Tần số lấy mẫu & 16.000 Hz, mono \\
+Kích thước khung (blockLen) & 512 mẫu (32 ms) \\
+\rowcolor{rowgray} Bước dịch khung (block\_shift) & 128 mẫu (8 ms), overlap 75\% \\
+Số bin tần số sau STFT & 257 (= blockLen / 2 + 1) \\
+\rowcolor{rowgray} Số đơn vị LSTM mỗi lớp & 128 units \\
+Số lớp LSTM mỗi giai đoạn & 2 lớp \\
+\rowcolor{rowgray} Dropout & 0,25 \\
+Số bộ lọc Encoder Conv1D & 256 \\
+\rowcolor{rowgray} Hàm kích hoạt mask & Sigmoid {[}0, 1{]} \\
+Hàm mất mát & Negative SNR \\
+\rowcolor{rowgray} Tổng số tham số & $\approx$ 1,8 triệu \\
+Kích thước file model & 3,9 MB (\texttt{DTLN\_vivos\_best.h5}) \\
+\rowcolor{rowgray} Độ trễ xử lý & $\approx$ 32 ms (real-time capable) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Kiến trúc hai giai đoạn}
+
+DTLN xử lý tín hiệu qua hai giai đoạn bổ sung lẫn nhau:
+
+\textbf{Giai đoạn 1 -- Miền tần số (STFT Domain):}
+Tín hiệu đầu vào được chia thành các khung 512 mẫu, áp dụng STFT để thu được
+257 bin tần số. Phổ biên độ $|X(f,t)|$ được chuẩn hóa qua InstantLayerNormalization,
+xử lý qua 2 lớp LSTM (128 units) với Dropout 0,25, rồi qua Dense + Sigmoid để tạo
+mask $M_1 \in [0,1]$. Mask được nhân với phổ biên độ gốc, kết hợp lại với phổ pha
+và biến đổi ngược (iFFT + Overlap-and-Add) để thu được tín hiệu $y_1(t)$.
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu trúc Separation Kernel -- Giai đoạn 1}
+\label{tab:sep-kernel}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.35\linewidth} >{\raggedright\arraybackslash}p{0.35\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thành phần}} & \textcolor{white}{\textbf{Thông số}} & \textcolor{white}{\textbf{Vai trò}} \\
+\midrule
+\rowcolor{rowgray} LSTM lớp 1 & 128 units, return\_seq=True & Đặc trưng tần số cục bộ \\
+Dropout & 0,25 & Giảm overfitting \\
+\rowcolor{rowgray} LSTM lớp 2 & 128 units, return\_seq=True & Phụ thuộc thời gian dài hạn \\
+Dense & 257 đơn vị & Ánh xạ về không gian bin tần số \\
+\rowcolor{rowgray} Sigmoid & Đầu ra {[}0, 1{]} & Tạo mask $M_1(f,t)$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Giai đoạn 2 -- Miền đặc trưng (Feature Domain):}
+Tín hiệu $y_1(t)$ được chiếu sang không gian 256 chiều qua Conv1D point-wise
+(kernel=1, stride=1). Sau InstantLayerNormalization và Separation Kernel thứ hai
+(cùng cấu trúc LSTM), Dense + Sigmoid tạo mask $M_2$ trong không gian đặc trưng.
+Giải mã qua Conv1D point-wise (256→512) với causal padding, rồi Overlap-and-Add
+tạo tín hiệu sạch $\hat{y}(t)$.
+
+\begin{table}[htbp]
+\centering
+\caption{So sánh hai giai đoạn xử lý DTLN}
+\label{tab:dual-signal}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.33\linewidth} >{\centering\arraybackslash}p{0.33\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tiêu chí}} & \textcolor{white}{\textbf{STFT (GĐ 1)}} & \textcolor{white}{\textbf{Conv1D Encoder (GĐ 2)}} \\
+\midrule
+\rowcolor{rowgray} Loại biến đổi & Cố định (fixed basis) & Học từ dữ liệu \\
+Chiều đầu ra & 257 bin tần số & 256 đặc trưng ẩn \\
+\rowcolor{rowgray} Ý nghĩa vật lý & Rõ ràng, diễn giải được & Trừu tượng \\
+Vai trò & Loại bỏ nhiễu tổng thể & Tinh chỉnh, phục hồi chi tiết \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Hàm mất mát Negative SNR}
+
+Mô hình được tối ưu hóa bằng hàm mất mát Negative SNR:
+\begin{equation}
+\text{Loss} = -10 \cdot \log_{10}\left(\frac{E[s^2]}{E[(s - \hat{s})^2 + \epsilon]}\right)
+\end{equation}
+trong đó $s$ là tín hiệu sạch, $\hat{s}$ là tín hiệu ước lượng, $\epsilon = 10^{-7}$.
+Hàm mất mát này tối đa hóa tỷ số tín hiệu trên nhiễu (SNR) của đầu ra,
+trực tiếp tối ưu chất lượng âm thanh.
+
+\section{Mô hình XLM-RoBERTa}
+
+XLM-RoBERTa (Cross-lingual Language Model -- Robustly Optimized BERT Approach)
+là mô hình ngôn ngữ đa ngôn ngữ được phát triển bởi Facebook AI, huấn luyện
+trên 2,5 TB dữ liệu CommonCrawl từ 100 ngôn ngữ.
+
+\begin{itemize}
+\item \textbf{Base model:} XLM-RoBERTa-base với 270M tham số.
+\item \textbf{Fine-tuned:} \texttt{Lezh1n/xlm-roberta-ecommerce-classifier}
+  cho phân loại 32 danh mục thương mại điện tử.
+\item \textbf{Kích thước:} $\approx$ 1,1 GB, max sequence 512 tokens.
+\item \textbf{Hiệu năng:} Accuracy 90,14\%, F1-score 90,00\%.
+\end{itemize}
+
+Ưu điểm của XLM-RoBERTa cho bài toán này là khả năng xử lý đa ngôn ngữ
+(cross-lingual transfer), cho phép mô hình hiểu cả text tiếng Việt lẫn
+tên sản phẩm tiếng Anh thường gặp trong thương mại điện tử.
+
+\section{Các mô hình OpenAI}
+
+\subsection{GPT-4o-transcribe}
+
+GPT-4o-transcribe là mô hình Speech-to-Text mới nhất của OpenAI,
+kế thừa và cải tiến từ Whisper. Mô hình hỗ trợ nhận dạng tiếng Việt
+đa vùng miền với độ chính xác cao, hỗ trợ nhiều định dạng audio
+(WAV, MP3, FLAC, OGG, WebM, M4A).
+
+Trong dự án, lịch sử phát triển module STT trải qua:
+PhoWhisper-tiny (local) → whisper-1 (OpenAI) → gpt-4o-transcribe,
+với mỗi bước nâng cấp cải thiện đáng kể chất lượng nhận dạng tiếng Việt.
+
+\subsection{GPT-4o-mini}
+
+GPT-4o-mini là mô hình ngôn ngữ lớn (LLM) nhỏ gọn của OpenAI,
+được sử dụng để sinh mô tả sản phẩm từ text nhận dạng giọng nói.
+Mô hình có khả năng hiểu ngữ cảnh, xử lý text lộn xộn từ STT
+(từ lấp, lặp lại, lỗi phát âm) và sinh văn bản mạch lạc theo
+phong cách viết được chỉ định.

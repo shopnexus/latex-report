@@ -1,0 +1,172 @@
+\chapter{Cài đặt hệ thống}
+
+\section{Cài đặt thiết bị nhúng ESP32}
+
+\subsection{Cấu hình I2S}
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình I2S cho microphone INMP441}
+\label{tab:i2s-config}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\raggedright\arraybackslash}p{0.55\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Giá trị}} \\
+\midrule
+\rowcolor{rowgray} Chế độ & I2S\_MODE\_MASTER | I2S\_MODE\_RX \\
+Tần số lấy mẫu & 16.000 Hz \\
+\rowcolor{rowgray} Bit depth đầu vào & 32-bit (I2S native) \\
+Bit depth đầu ra & 16-bit PCM (sau chuyển đổi) \\
+\rowcolor{rowgray} Kênh & Mono (chỉ kênh trái) \\
+Số DMA buffer & 16 (tăng từ 8 để ổn định) \\
+\rowcolor{rowgray} Kích thước buffer & 1024 mẫu (64 ms mỗi buffer) \\
+Throughput & 32 KB/s ($\approx$ 256 kbps) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Chuẩn hóa tín hiệu}
+
+Microphone INMP441 có độ phân giải 18-bit, đóng gói trong word 32-bit với dữ liệu
+nằm ở các bit cao. Quá trình chuẩn hóa:
+
+\begin{enumerate}
+\item Đọc mẫu 32-bit raw từ I2S DMA buffer.
+\item Dịch phải 14 bit: \texttt{val = raw\_samples[i] >> 14}.
+\item Cắt ngưỡng vào phạm vi 16-bit signed: $[-32768, 32767]$.
+\item Lưu dưới dạng \texttt{int16\_t} để truyền qua TCP.
+\end{enumerate}
+
+\subsection{Pipeline streaming video}
+
+Camera OV5640 được cấu hình chụp JPEG với double buffering (2 frame buffer).
+XCLK mặc định 12 MHz, chất lượng JPEG có thể điều chỉnh (10--63).
+
+Mỗi frame được truyền qua TCP port 3001 với giao thức:
+\texttt{[Length (4 bytes LE)][JPEG Data (variable)]}.
+Buffer tĩnh 250 KB được cấp phát một lần trên PSRAM (hoặc heap) để tránh
+phân mảnh bộ nhớ.
+
+\subsection{Giao thức điều khiển camera}
+
+Trình duyệt gửi lệnh điều khiển qua WebSocket đến server trung gian,
+server chuyển tiếp qua TCP đến ESP32 với format:
+\texttt{[0xA5][ID (1 byte)][Value (1 byte)]}.
+
+\begin{table}[htbp]
+\centering
+\caption{Các lệnh điều khiển camera chính}
+\label{tab:camera-commands}
+\begin{tabular}{>{\centering\arraybackslash}p{0.08\linewidth} >{\raggedright\arraybackslash}p{0.3\linewidth} >{\raggedright\arraybackslash}p{0.45\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{ID}} & \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Phạm vi}} \\
+\midrule
+\rowcolor{rowgray} 1 & JPEG Quality & 10--63 (thấp = chất lượng cao hơn) \\
+2 & Frame Size & QQVGA đến UXGA (14 mức) \\
+\rowcolor{rowgray} 3--5 & Brightness, Contrast, Saturation & $-2$ đến $+2$ \\
+6--9 & AWB, AEC, AGC, AEC2 & 0/1 (bật/tắt) \\
+\rowcolor{rowgray} 16--17 & H-Mirror, V-Flip & 0/1 \\
+20 & XCLK Frequency & 6/8/12/16/24 MHz \\
+\rowcolor{rowgray} 21 & Frame Buffer Count & 1--4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ESP32 phản hồi cài đặt hiện tại qua packet với magic header \texttt{0xBEEF}
+theo format: \texttt{[0xBE][0xEF][ID][Value]...} cho tất cả 21 tham số.
+
+\section{Cài đặt dịch vụ khử nhiễu}
+
+\subsection{Huấn luyện trên VIVOS}
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình huấn luyện DTLN trên VIVOS}
+\label{tab:training-config}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.3\linewidth} >{\centering\arraybackslash}p{0.2\linewidth} >{\raggedright\arraybackslash}p{0.35\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Giá trị}} & \textcolor{white}{\textbf{Giải thích}} \\
+\midrule
+\rowcolor{rowgray} Dữ liệu sạch & VIVOS & Tiếng Việt, $>$ 1 GB \\
+Dữ liệu nhiễu & Microsoft DNS & Kết hợp random SNR \\
+\rowcolor{rowgray} Batch size & 32 & Cân bằng GPU/gradient \\
+Độ dài đoạn & 3 giây & Phù hợp VIVOS (3--5s) \\
+\rowcolor{rowgray} Epoch tối đa & 50 & Kết hợp dừng sớm \\
+Learning rate & $10^{-3}$ & ReduceLROnPlateau \\
+\rowcolor{rowgray} Early Stopping & 10 epoch & Tránh overfitting \\
+Optimizer & Adam, clipnorm=3.0 & Tránh bùng nổ gradient \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Pipeline xử lý khử nhiễu}
+
+Luồng xử lý khi nhận request:
+\begin{enumerate}
+\item Đọc file WAV qua SoundFile, validate sample rate (16 kHz).
+\item Convert stereo→mono (nếu cần), cast sang float32.
+\item Thêm batch dimension, chạy \texttt{model.predict()}.
+\item Clip output vào $[-1, 1]$, ghi file WAV đã khử nhiễu.
+\item Trả file qua HTTP response, xóa file tạm.
+\end{enumerate}
+
+\section{Cài đặt dịch vụ nhận dạng giọng nói}
+
+\subsection{Speech-to-Text}
+
+\begin{itemize}
+\item \textbf{Mô hình:} OpenAI gpt-4o-transcribe (cloud API).
+\item \textbf{Định dạng hỗ trợ:} WAV, MP3, FLAC, OGG, WebM, M4A.
+\item \textbf{Ngôn ngữ:} Tiếng Việt (đa vùng miền).
+\item \textbf{API:} \texttt{POST /stt} -- upload file audio, trả về text.
+\end{itemize}
+
+\subsection{Sinh mô tả sản phẩm}
+
+\begin{itemize}
+\item \textbf{Mô hình:} GPT-4o-mini (temperature 0.75, max 600 tokens).
+\item \textbf{API:} \texttt{POST /gen} -- nhận \texttt{product\_description} (text từ STT)
+  và \texttt{style} (phong cách viết).
+\item \textbf{Prompt engineering:} System prompt hướng dẫn AI đóng vai copywriter
+  thương mại điện tử, trích xuất thông tin sản phẩm từ text lộn xộn của STT,
+  bỏ qua từ lấp, lặp lại, lỗi phát âm; viết 3--5 câu ngắn gọn theo phong cách yêu cầu.
+\end{itemize}
+
+\subsection{Lưu trữ phong cách viết}
+
+Các phong cách viết được lưu trong SQLite (\texttt{styles.db}) với schema đơn giản
+(id, name, description). Người dùng có thể thêm phong cách mới qua
+\texttt{POST /add-style}.
+
+\section{Cài đặt dịch vụ phân loại sản phẩm}
+
+\subsection{Pipeline suy luận}
+
+\begin{enumerate}
+\item Client gửi text mô tả sản phẩm qua POST request.
+\item Validate input bằng Pydantic schema.
+\item Tokenize input (max 512 tokens) qua AutoTokenizer.
+\item Forward pass sinh logits cho 32 danh mục.
+\item Softmax → top-K predictions với category ID, name, display name, score.
+\item Trả response kèm inference time.
+\end{enumerate}
+
+Model được load khi khởi động qua FastAPI Lifespan Context Manager,
+tự động detect GPU (fallback CPU), set evaluation mode.
+
+\subsection{Hiệu năng}
+
+\begin{table}[htbp]
+\centering
+\caption{Benchmark hiệu năng phân loại sản phẩm}
+\label{tab:classify-benchmark}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\centering\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.2\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Scenario}} & \textcolor{white}{\textbf{Latency}} & \textcolor{white}{\textbf{Throughput}} \\
+\midrule
+\rowcolor{rowgray} Single inference (CPU) & $\approx$ 45 ms & 22 req/s \\
+Batch 10 items (CPU) & $\approx$ 180 ms & 55 items/s \\
+\rowcolor{rowgray} Single inference (GPU) & $\approx$ 15 ms & 66 req/s \\
+Batch 100 items (GPU) & $\approx$ 800 ms & 125 items/s \\
+\bottomrule
+\end{tabular}
+\end{table}
