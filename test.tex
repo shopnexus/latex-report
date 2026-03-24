@@ -1,0 +1,578 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+  13pt,
+]{article}
+\usepackage[table]{xcolor}
+\definecolor{headerblue}{RGB}{41, 65, 122}
+\definecolor{rowgray}{RGB}{240, 243, 250}
+\renewcommand{\arraystretch}{1.4}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage[T5]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\usepackage{times}
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage[vietnamese]{babel}
+% get rid of language-specific shorthands (see #6817):
+\let\LanguageShortHands\languageshorthands
+\def\languageshorthands#1{}
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdflang={vi},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\textbf{BÁO CÁO TIẾN ĐỘ BUỔI 7 - NHÓM 10}
+
+\textbf{Đề tài:} Xây dựng hệ thống nhúng hỗ trợ bán hàng thông minh
+
+\subsection{\texorpdfstring{\textbf{I. Tóm tắt tiến độ hiện
+tại}}{I. Tóm tắt tiến độ hiện tại}}\label{i.-tuxf3m-tux1eaft-tiux1ebfn-ux111ux1ed9-hiux1ec7n-tux1ea1i}
+
+Dự án đã hoàn thành việc xây dựng luồng giao tiếp cơ bản giữa thiết bị
+nhúng và máy chủ, đồng thời tích hợp thành công các mô hình AI cốt lõi.
+Mô hình khử nhiễu tự phát triển cho kết quả khả quan. Hệ thống demo (bao
+gồm web streaming và xử lý giọng nói) hiện đang hoạt động ổn định và
+trơn tru.
+
+\subsection{\texorpdfstring{\textbf{II. Các công việc đã hoàn
+thành}}{II. Các công việc đã hoàn thành}}\label{ii.-cuxe1c-cuxf4ng-viux1ec7c-ux111uxe3-houxe0n-thuxe0nh}
+
+\textbf{2.1. Phát triển thiết bị nhúng (Hardware/IoT)}
+
+\begin{itemize}
+\item
+  Thiết lập và cấu hình ESP32 (Sử dụng ESP32-CAM và Microphone).
+\item
+  Tối ưu hóa tài nguyên phần cứng bằng cách chia tải xử lý trên 2 nhân
+  (dual-core) của ESP32:
+
+  \begin{itemize}
+  \item
+    1 core chuyên trách xử lý tín hiệu âm thanh (audio) từ mic.
+  \item
+    1 core chuyên trách xử lý hình ảnh (video streaming) từ camera.
+  \end{itemize}
+\end{itemize}
+
+\textbf{2.2. Xây dựng Server và tích hợp các AI Services}
+
+\begin{itemize}
+\item
+  Phát triển máy chủ trung tâm sử dụng \ldots\ldots.
+\item
+  Thiết lập và liên kết 3 services chính trên server:
+
+  \begin{itemize}
+  \item
+    \textbf{Service 1 (Denoise):} Khử nhiễu âm thanh đầu vào.
+  \item
+    \textbf{Service 2 (STT - Speech to Text):} Chuyển đổi giọng nói
+    thành văn bản sử dụng mô hình Whisper.
+  \item
+    \textbf{Service 3 (Classification):} Phân loại ý định/nội dung dựa
+    trên văn bản sử dụng mô hình RoBERTa transformer.
+  \end{itemize}
+\end{itemize}
+
+\textbf{2.3. Nghiên cứu và huấn luyện mô hình Khử nhiễu (Denoise Model)}
+
+\begin{itemize}
+\item
+  \textbf{Tiền xử lý và chuẩn bị dữ liệu:} Xây dựng tập dữ liệu huấn
+  luyện bằng cách sử dụng bộ dữ liệu tiếng Việt VIVOS (kích thước
+  \textgreater{} 1GB) kết hợp ngẫu nhiên (mix random) với bộ dữ liệu
+  nhiễu (noise) của Microsoft.
+\item
+  \textbf{Huấn luyện (Training):} Tự xây dựng và huấn luyện mô hình với
+  dữ liệu đầu vào (input) là giọng nói có lẫn nhiễu (noisy speech) và
+  mục tiêu đầu ra (output) là giọng nói sạch (clean speech).
+\item
+  \textbf{Đánh giá:} Thực hiện đánh giá chất lượng mô hình thông qua
+  việc phân tích và so sánh phổ Fourier (Fourier spectrum) giữa tín hiệu
+  nhiễu và tín hiệu sau khử nhiễu. Kết quả cho thấy mô hình xử lý khử
+  nhiễu rất tốt.
+\end{itemize}
+
+\textbf{2.4. Giao diện người dùng và Demo}
+
+\begin{itemize}
+\item
+  Xây dựng Web browser UI đóng vai trò là bảng điều khiển (dashboard).
+\item
+  Hiển thị luồng video streaming theo thời gian thực từ ESP32.
+\item
+  Tích hợp tính năng hiển thị trực quan dữ liệu giọng nói (Voice
+  Recognition UI):
+
+  \begin{itemize}
+  \item
+    Hiển thị âm thanh dưới dạng biểu đồ phổ (Spectrogram) và dạng sóng
+    (Waveform).
+  \item
+    Cho phép quan sát và so sánh trực quan tín hiệu trước và sau khi đi
+    qua mô hình khử nhiễu.
+  \end{itemize}
+\end{itemize}
+
+\subsection{\texorpdfstring{\textbf{III. Kiến trúc và Cấu trúc hệ
+thống}}{III. Kiến trúc và Cấu trúc hệ thống}}\label{iii.-kiux1ebfn-truxfac-vuxe0-cux1ea5u-truxfac-hux1ec7-thux1ed1ng}
+
+\textbf{3.1. Sơ đồ khối tổng thể của hệ thống}
+
+\textbf{3.2. Luồng hoạt động của các Services (Service Workflow)}
+
+\textbf{3.3. Kiến trúc mô hình khử nhiễu DTLN}
+
+\textbf{3.3.1. Tổng quan về DTLN}
+
+DTLN (Dual-signal Transformation LSTM Network) là một mô hình học sâu
+được đề xuất bởi Westhausen và Meyer (2020) nhằm giải quyết bài toán
+tăng cường chất lượng giọng nói (Speech Enhancement) trong môi trường
+thực tế. Mô hình được thiết kế để hoạt động hiệu quả trên các thiết bị
+tài nguyên hạn chế như Raspberry Pi 4, đáp ứng yêu cầu xử lý thời gian
+thực với độ trễ khoảng 32 ms.
+
+Điểm đột phá của DTLN nằm ở kiến trúc hai giai đoạn xử lý song song
+trong hai miền biểu diễn tín hiệu khác nhau. Giai đoạn đầu khai thác
+miền tần số thông qua biến đổi STFT, trong khi giai đoạn hai hoạt động
+trong miền đặc trưng học được (learned feature domain) thông qua bộ mã
+hóa tích chập. Sự kết hợp này cho phép mô hình loại bỏ nhiễu một cách
+toàn diện hơn so với các phương pháp đơn miền truyền thống.
+
+Trong dự án này, DTLN được huấn luyện trên bộ dữ liệu clean speech từ
+VIVOS (tiếng Việt) kết hợp với tập nhiễu lấy từ Microsoft Deep Noise
+Suppression Challenge (DNS Challenge) của Microsoft, nhằm tối ưu hóa
+hiệu năng khử nhiễu cho giọng nói tiếng Việt trong hệ thống hỗ trợ bán
+hàng thông minh nhúng
+
+\begin{table}[htbp]
+\centering
+\caption{Các thông số chính của mô hình DTLN}
+\label{tab:dtln-params}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.45\linewidth} >{\centering\arraybackslash}p{0.45\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thông số}} & \textcolor{white}{\textbf{Giá trị}} \\
+\midrule
+\rowcolor{rowgray} Tần số lấy mẫu đầu vào & 16.000 Hz, mono channel \\
+Kích thước khung phân tích (blockLen) & 512 mẫu tương đương 32 ms \\
+\rowcolor{rowgray} Bước dịch khung (block\_shift) & 128 mẫu tương đương 8 ms, overlap 75\% \\
+Số bin tần số sau STFT & 257 bin (= blockLen / 2 + 1) \\
+\rowcolor{rowgray} Số đơn vị LSTM mỗi lớp & 128 units \\
+Số lớp LSTM mỗi giai đoạn & 2 lớp \\
+\rowcolor{rowgray} Dropout giữa các lớp LSTM & 0,25 \\
+Số bộ lọc Encoder Conv1D & 256 bộ lọc \\
+\rowcolor{rowgray} Kiểu tích chập Encoder & Point-wise convolution (kernel = 1, stride = 1) \\
+Hàm kích hoạt mask & Sigmoid, giá trị trong khoảng {[}0, 1{]} \\
+\rowcolor{rowgray} Hàm mất mát & Negative SNR (Signal-to-Noise Ratio) \\
+Phương pháp chuẩn hóa & InstantLayerNormalization (channel-wise) \\
+\rowcolor{rowgray} Tổng số tham số & Khoảng 1,8 triệu tham số \\
+Độ trễ xử lý & Khoảng 32 ms (real-time capable) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{3.3.2. Kiến Trúc Tổng Thể}
+
+DTLN bao gồm hai khối xử lý tuần tự, mỗi khối thực hiện ước lượng và
+loại bỏ nhiễu trong một miền biểu diễn riêng biệt. Đầu vào là tín hiệu
+dạng sóng (waveform) chứa giọng nói lẫn nhiễu, đầu ra là tín hiệu giọng
+nói đã được phục hồi. Tín hiệu đầu ra của giai đoạn 1 được sử dụng trực
+tiếp làm đầu vào cho giai đoạn 2.
+
+Toàn bộ mô hình được tối ưu hóa \emph{end-to-end} thông qua hàm mất mát
+Negative SNR bằng thuật toán tối ưu Adam với gradient clipping (clipnorm
+= 3,0). Chiến lược này đảm bảo hai giai đoạn học cách phối hợp bổ sung
+cho nhau mà không cần nhãn trung gian, đồng thời tránh hiện tượng bùng
+nổ gradient (exploding gradient) thường gặp khi huấn luyện mạng hồi tiếp
+sâu.
+
+Hình dưới đây mô tả luồng xử lý tổng thể của mô hình, từ tín hiệu đầu
+vào qua hai giai đoạn khử nhiễu đến tín hiệu đầu ra sạch.
+
+\textbf{\emph{Hình 1. Sơ đồ kiến trúc tổng thể của mô hình DTLN}}
+
+\textbf{x(t) → {[}STAGE 1: STFT Domain{]} → y₁(t) → {[}STAGE 2: Feature
+Domain{]} → ŷ(t)}
+
+\textbf{3.3.3. Giai Đoạn 1 - Xử Lý trong Miền Tần Số}
+
+\textbf{3.3.3.1. Phân Khung và Biến Đổi STFT}
+
+Tín hiệu đầu vào được chia thành các khung ngắn có kích thước 512 mẫu
+(tương đương 32 ms ở tần số lấy mẫu 16 kHz) với bước dịch 128 mẫu (8
+ms), tạo ra độ chồng lấn (overlap) 75\% giữa các khung liên tiếp. Biến
+đổi Fourier thời gian ngắn (STFT) được áp dụng lên từng khung thông qua
+phép biến đổi Fourier nửa phổ thực (rfft), thu được 257 bin tần số tương
+ứng với các thành phần phổ từ 0 Hz đến 8.000 Hz.
+
+Từ kết quả STFT, hai thành phần được tách riêng: phổ biên độ
+\textbar X(f, t)\textbar{} được sử dụng làm đầu vào cho mạng neural,
+trong khi phổ pha ∠X(f, t) được giữ nguyên để tái sử dụng trong quá
+trình tổng hợp tín hiệu.
+
+\textbf{3.3.3.2. Chuẩn Hóa InstantLayerNormalization}
+
+Trước khi đưa vào khối LSTM, phổ biên độ được xử lý qua lớp chuẩn hóa
+InstantLayerNormalization - một biến thể của Layer Normalization được đề
+xuất bởi Luo \& Mesgarani (2018). Khác với Batch Normalization xử lý
+theo chiều batch, InstantLayerNormalization thực hiện chuẩn hóa trên
+chiều đặc trưng (feature dimension) của từng khung thời gian một cách
+độc lập, đảm bảo mô hình hoạt động ổn định bất kể độ dài chuỗi đầu vào.
+
+Cụ thể, với mỗi khung, lớp này tính giá trị trung bình và phương sai
+trên toàn bộ các bin tần số, sau đó chuẩn hóa để đưa phân phối về trung
+bình 0 và phương sai 1, rồi tái tỉ lệ bằng hai tham số học được là gamma
+và beta. Cơ chế này giúp mô hình bất biến với biên độ tổng thể của tín
+hiệu đầu vào, tức là hoạt động tốt bất kể âm lượng ghi âm cao hay thấp.
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu trúc chi tiết khối Separation Kernel -- Giai đoạn 1}
+\label{tab:sep-kernel}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.35\linewidth} >{\raggedright\arraybackslash}p{0.35\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thành phần}} & \textcolor{white}{\textbf{Thông số}} & \textcolor{white}{\textbf{Vai trò}} \\
+\midrule
+\rowcolor{rowgray} LSTM lớp 1 & 128 units, return\_sequences = True & Học đặc trưng tần số cục bộ theo thời gian \\
+Dropout & Tỉ lệ 0,25 & Giảm overfitting giữa hai lớp LSTM \\
+\rowcolor{rowgray} LSTM lớp 2 & 128 units, return\_sequences = True & Tổng hợp phụ thuộc thời gian dài hạn \\
+Dense & 257 đơn vị & Ánh xạ về không gian 257 chiều tương ứng với các bin tần số \\
+\rowcolor{rowgray} Sigmoid & Đầu ra trong {[}0, 1{]} & Tạo mask lọc nhiễu M₁(f, t) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{3.3.3.3. Ước Lượng Mask và Tổng Hợp Tín Hiệu}
+
+Mask M₁ được nhân trực tiếp (element-wise) với phổ biên độ gốc để ước
+lượng phổ biên độ của giọng nói sạch. Các giá trị mask gần 1 giữ lại
+thành phần tương ứng (giọng nói), trong khi các giá trị gần 0 triệt tiêu
+thành phần đó (nhiễu). Phổ biên độ sau khi lọc được kết hợp lại với phổ
+pha gốc để tái tạo phổ phức, sau đó áp dụng biến đổi Fourier ngược
+(iFFT) và kỹ thuật Overlap-and-Add để thu được các khung tín hiệu thời
+gian y₁(t). Các khung này trở thành đầu vào trực tiếp cho giai đoạn 2.
+
+\textbf{3.3.4. Giai Đoạn 2 - Xử Lý trong Miền Đặc Trưng}
+
+\textbf{3.3.4.1. Encoder Conv1D}
+
+Các khung tín hiệu y₁(t) từ giai đoạn 1 (512 chiều, tương ứng 512 mẫu
+mỗi khung) được chiếu sang không gian đặc trưng 256 chiều thông qua một
+lớp tích chập 1D kiểu point-wise - tức là tích chập với kernel kích
+thước 1 và stride 1. Phép chiếu tuyến tính này học một cơ sở biểu diễn
+(basis transformation) riêng biệt cho từng khung thời gian, không phụ
+thuộc vào các khung lân cận.
+
+Khác biệt so với bài báo gốc: Bài báo Westhausen \& Meyer (2020) mô tả
+Encoder là Conv1D với kernel kích thước 32 và stride 32, tạo ra các đặc
+trưng từ các đoạn tín hiệu không chồng lấn. Tuy nhiên, cài đặt trong dự
+án này sử dụng kernel kích thước 1 (point-wise convolution), hoạt động
+như một phép chiếu tuyến tính thuần túy trên từng vị trí thời gian. Điều
+này giúp mô hình nhỏ gọn hơn và tương thích với pipeline phân khung đã
+thực hiện ở bước tiền xử lý.
+
+\begin{table}[htbp]
+\centering
+\caption{Thông số bộ mã hóa Encoder -- Giai đoạn 2}
+\label{tab:encoder-params}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.25\linewidth} >{\raggedright\arraybackslash}p{0.4\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Giá trị}} & \textcolor{white}{\textbf{Ghi chú}} \\
+\midrule
+\rowcolor{rowgray} Số bộ lọc & 256 & Chiều không gian đặc trưng đầu ra \\
+Kích thước kernel & 1 (point-wise) & Chiếu tuyến tính từng vị trí thời gian \\
+\rowcolor{rowgray} Stride & 1 & Không giảm chiều thời gian \\
+Hệ số bias & Không sử dụng & use\_bias = False \\
+\rowcolor{rowgray} Hàm kích hoạt & Không có & Phép chiếu tuyến tính thuần túy \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{3.3.4.2. InstantLayerNormalization và LSTM}
+
+Biểu diễn mã hóa (256 chiều) được chuẩn hóa qua
+InstantLayerNormalization - luôn được kích hoạt ở giai đoạn 2 bất kể cài
+đặt của giai đoạn 1. Sau đó, biểu diễn được xử lý qua Separation Kernel
+thứ hai với cấu trúc tương tự giai đoạn 1: hai lớp LSTM (128 units mỗi
+lớp) kết hợp Dropout 0,25 ở giữa. Tuy nhiên, ở giai đoạn này mạng học
+các phụ thuộc thời gian trong không gian đặc trưng 256 chiều - một biểu
+diễn trừu tượng hơn so với phổ biên độ STFT.
+
+Việc đặt LSTM vào không gian đặc trưng học được có ý nghĩa quan trọng:
+mô hình không chỉ lọc nhiễu ở mức phổ tần số mà còn có thể tái cấu trúc
+các mẫu cấu trúc thời gian phức tạp của giọng nói, đặc biệt hữu ích khi
+xử lý các loại nhiễu có cấu trúc như âm nhạc nền hay tiếng xe cộ.
+
+\textbf{3.3.4.3. Ước Lượng Mask, Giải Mã và Overlap-and-Add}
+
+Đầu ra LSTM được chiếu qua lớp Dense (256 đơn vị) kết hợp Sigmoid để tạo
+mask M₂ trong không gian đặc trưng. Mask được nhân với biểu diễn mã hóa
+để loại bỏ các thành phần nhiễu còn sót lại từ giai đoạn 1.
+
+Biểu diễn đã lọc sau đó được giải mã về lại miền khung thời gian (512
+chiều) thông qua một lớp tích chập 1D point-wise với padding nhân quả
+(causal padding). Bộ giải mã trong cài đặt này sử dụng Conv1D thông
+thường - không phải Conv1D Transposed - nhờ vào kiến trúc point-wise
+giúp phép chiếu ngược từ 256-D về 512-D khả thi mà không cần phép tích
+chập chuyển vị.
+
+Cuối cùng, các khung đã giải mã được ghép lại thành tín hiệu liên tục
+qua kỹ thuật Overlap-and-Add với bước dịch 128 mẫu, tạo ra tín hiệu
+giọng nói đầu ra ŷ(t) đã được khử nhiễu hoàn toàn qua hai giai đoạn.
+
+\textbf{3.3.5. Phân Tích Các Thành Phần Cốt Lõi}
+
+\textbf{3.3.5.1. Cơ Chế Dual-Signal Transformation}
+
+Đặc trưng nổi bật nhất của DTLN là sự kết hợp hai phép biến đổi tín hiệu
+có bản chất khác nhau. Biến đổi STFT cung cấp biểu diễn có ý nghĩa vật
+lý rõ ràng, mỗi bin tần số tương ứng với một dải tần cụ thể, giúp mạng
+học cách lọc nhiễu theo phổ tần số một cách trực quan. Trong khi đó, bộ
+mã hóa Conv1D học một cơ sở biểu diễn tối ưu từ dữ liệu, cho phép mô
+hình nắm bắt các đặc trưng phi tuyến mà biến đổi STFT cố định không biểu
+diễn được.
+
+\begin{table}[htbp]
+\centering
+\caption{So sánh hai phép biến đổi tín hiệu trong DTLN}
+\label{tab:dual-signal}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.33\linewidth} >{\centering\arraybackslash}p{0.33\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tiêu chí}} & \textcolor{white}{\textbf{STFT (Giai đoạn 1)}} & \textcolor{white}{\textbf{Conv1D Encoder (Giai đoạn 2)}} \\
+\midrule
+\rowcolor{rowgray} Loại biến đổi & Cố định (fixed basis) & Học được từ dữ liệu \\
+Chiều đầu ra & 257 bin tần số & 256 đặc trưng ẩn \\
+\rowcolor{rowgray} Ý nghĩa vật lý & Rõ ràng, diễn giải được & Trừu tượng \\
+Độ linh hoạt & Cố định, không thay đổi & Thích ứng theo dữ liệu huấn luyện \\
+\rowcolor{rowgray} Vai trò & Loại bỏ nhiễu tổng thể ở mức phổ & Tinh chỉnh và phục hồi chi tiết giọng nói \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\textbf{3.3.5.2. Multiplicative Masking - Lọc Mềm}
+
+Cả hai giai đoạn đều sử dụng phương pháp ước lượng mask nhân
+(multiplicative masking) thay vì dự đoán trực tiếp phổ giọng nói sạch
+(spectral mapping). Cụ thể, mạng học ước lượng một mask có giá trị trong
+{[}0, 1{]} rồi nhân trực tiếp với biểu diễn đầu vào. Giá trị mask gần 1
+giữ lại thành phần giọng nói, giá trị gần 0 triệt tiêu nhiễu - mô hình
+hoạt động như một bộ lọc mềm (soft filter) điều khiển bởi nội dung tín
+hiệu.
+
+Phương pháp này có hai ưu điểm chính so với spectral mapping trực tiếp.
+Thứ nhất, bài toán học mask bị chặn trong {[}0, 1{]} ổn định và dễ tối
+ưu hóa hơn. Thứ hai, mask nhân đảm bảo năng lượng đầu ra không bao giờ
+vượt quá năng lượng đầu vào - điều quan trọng để tránh các hiện vật âm
+thanh (audio artifacts) trong thực tế.
+
+\textbf{3.3.5.3. Hàm Mất Mát Negative SNR}
+
+Mô hình được tối ưu hóa bằng hàm mất mát Negative SNR (Signal-to-Noise
+Ratio), được tính theo công thức:
+
+\textbf{\emph{SNR = E{[}s²{]} / E{[}(s − ŝ)² + ε{]}}}
+
+\textbf{\emph{Loss = −10 · log₁₀(SNR)}}
+
+Trong đó s là tín hiệu giọng nói sạch tham chiếu, ŝ là tín hiệu ước
+lượng đầu ra của mô hình, và ε = 10⁻⁷ là hằng số nhỏ tránh chia cho 0.
+Hàm mất mát tính tỉ số giữa năng lượng tín hiệu sạch và năng lượng sai
+số khử nhiễu, chuyển sang đơn vị dB rồi đảo dấu để tối thiểu hóa. Giá
+trị loss càng thấp (âm hơn) tương ứng với chất lượng khử nhiễu càng tốt.
+
+So sánh với SI-SDR: SNR đơn giản hơn SI-SDR ở chỗ không có bước chiếu tỉ
+lệ (scale projection). Tuy nhiên, trong bài toán khử nhiễu giọng nói khi
+biên độ đầu ra cần khớp với tín hiệu sạch tham chiếu, SNR vẫn phản ánh
+hiệu quả chất lượng ước lượng và phù hợp với yêu cầu huấn luyện thực tế
+của dự án.
+
+\textbf{3.3.6. Cấu Hình Huấn Luyện trên Bộ Dữ Liệu VIVOS}
+
+\textbf{3.3.6.1. Chiến Lược Huấn Luyện}
+
+Bộ dữ liệu huấn luyện được xây dựng bằng cách kết hợp tập âm thanh sạch
+từ VIVOS với nhiễu từ DNS Challenge theo các tỉ lệ SNR ngẫu nhiên, tạo
+ra các cặp (noisy, clean) song song. Mỗi mẫu được cắt thành đoạn 3 giây
+- phù hợp với độ dài trung bình của các file ghi âm trong VIVOS (3 đến 5
+giây) - giúp mô hình học được ngữ cảnh đủ dài trong khi vẫn kiểm soát
+được bộ nhớ GPU.
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình huấn luyện mô hình DTLN trên VIVOS}
+\label{tab:training-config}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.25\linewidth} >{\centering\arraybackslash}p{0.3\linewidth} >{\raggedright\arraybackslash}p{0.33\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Giá trị}} & \textcolor{white}{\textbf{Giải thích}} \\
+\midrule
+\rowcolor{rowgray} Batch size & 32 & Cân bằng bộ nhớ GPU và tính ổn định gradient \\
+Độ dài đoạn âm thanh & 3 giây & Phù hợp phân bố độ dài file VIVOS \\
+\rowcolor{rowgray} Số epoch tối đa & 50 & Kết hợp với cơ chế dừng sớm \\
+Learning rate khởi đầu & $10^{-3}$ & Giảm dần theo ReduceLROnPlateau \\
+\rowcolor{rowgray} Hệ số giảm learning rate & 0,5 mỗi khi val loss không cải thiện sau 3 epoch & ReduceLROnPlateau, factor = 0,5 \\
+Dừng sớm (Early Stopping) & Sau 10 epoch không cải thiện val\_loss & Tránh overfitting \\
+\rowcolor{rowgray} Optimizer & Adam với clipnorm = 3,0 & Cắt gradient tránh bùng nổ \\
+Random seed & 42 & Đảm bảo khả năng tái lập kết quả \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{3.3.6.2. Cơ Chế Lưu Checkpoint và Theo Dõi Huấn Luyện}
+
+Quá trình huấn luyện được giám sát qua bốn cơ chế chính.
+
+\begin{itemize}
+\tightlist
+\item
+  Đầu tiên, một callback tùy chỉnh lưu checkpoint sau mỗi epoch và giữ
+  lại mô hình tốt nhất theo validation loss.\\
+\item
+  Thứ hai, ReduceLROnPlateau tự động giảm learning rate 50\% khi
+  validation loss ngưng cải thiện sau 3 epoch liên tiếp, giúp mô hình
+  thoát khỏi các điểm cực tiểu cục bộ.\\
+\item
+  Thứ ba, EarlyStopping dừng huấn luyện sau 10 epoch không có cải thiện
+  để tránh overfitting.\\
+\item
+  Cuối cùng, CSVLogger ghi lại toàn bộ lịch sử huấn luyện (loss,
+  val\_loss, learning rate) theo từng epoch để phân tích sau.
+\end{itemize}
+
+\textbf{3.3.7. Pipeline Triển Khai Thực Tế}
+
+\textbf{3.3.7.1. Xuất Mô Hình TF Lite}
+
+Sau khi huấn luyện, mô hình được chuyển đổi sang định dạng TF Lite để
+tối ưu hóa cho suy luận trên thiết bị nhúng. Do kiến trúc hai giai đoạn
+có trạng thái (stateful), mô hình được xuất thành hai sub-model riêng
+biệt (Core 1 tương ứng Stage 1 và Core 2 tương ứng Stage 2), mỗi
+sub-model nhận và trả về trạng thái ẩn LSTM (h, c) tại mỗi bước suy
+luận. Tùy chọn dynamic range quantization có thể được áp dụng để giảm
+thêm kích thước mô hình.
+
+\textbf{3.3.7.2. Suy Luận Thời Gian Thực}
+
+Trong chế độ suy luận thời gian thực trên Raspberry Pi 4, mô hình xử lý
+từng khung 512 mẫu (32 ms) một lần. Trạng thái ẩn LSTM được duy trì liên
+tục giữa các lần suy luận, đảm bảo ngữ cảnh không bị gián đoạn trong
+suốt luồng âm thanh streaming. Luồng xử lý tuần tự như sau:\\
+microphone thu tín hiệu → phân khung 512 mẫu → STFT → Core 1 (Stage 1) →
+iFFT → Core 2 (Stage 2) → Overlap-and-Add → tín hiệu sạch đầu ra.
+
+\textbf{3.3.8. Đánh Giá Ưu Điểm và Hạn Chế}
+
+\textbf{3.3.8.1. Ưu Điểm}
+
+\begin{itemize}
+\tightlist
+\item
+  Kiến trúc nhỏ gọn (\textasciitilde1,8M tham số): Đạt hiệu năng cạnh
+  tranh so với các mô hình lớn hơn nhiều lần, phù hợp để triển khai trên
+  thiết bị nhúng tài nguyên hạn chế.\\
+\item
+  Xử lý thời gian thực (\textasciitilde32 ms latency): Đáp ứng yêu cầu
+  độ trễ thấp cho các ứng dụng giao tiếp tương tác.\\
+\item
+  Dual-domain processing: Khai thác bổ sung hai miền biểu diễn giúp khử
+  nhiễu toàn diện hơn so với phương pháp đơn miền.\\
+\item
+  Tối ưu cho tiếng Việt: Được huấn luyện trực tiếp trên VIVOS, phù hợp
+  với đặc trưng âm học của giọng nói tiếng Việt.\\
+\item
+  Hỗ trợ TF Lite và stateful inference: Tương thích triển khai streaming
+  real-time trên nhiều nền tảng phần cứng khác nhau.
+\end{itemize}
+
+\textbf{3.3.8.1. Hạn Chế}
+
+\begin{itemize}
+\tightlist
+\item
+  Chỉ hỗ trợ mono channel: Chưa khai thác được thông tin không gian từ
+  mảng microphone hay kỹ thuật beamforming.\\
+\item
+  Nhạy cảm với nhiễu phi tĩnh: Hiệu năng có thể giảm với các loại nhiễu
+  biến đổi nhanh hoặc có cấu trúc âm nhạc phức tạp.\\
+\item
+  Yêu cầu dữ liệu song song: Cần các cặp (noisy, clean) chất lượng cao,
+  khó thu thập trong điều kiện thực tế đối với tiếng Việt.\\
+\item
+  Pha không được tối ưu hóa: Giai đoạn 1 tái sử dụng pha gốc thay vì ước
+  lượng, có thể gây hiện tượng artifact trong trường hợp nhiễu nặng.\\
+\item
+  Không sử dụng windowing trong STFT: Có thể gây rò rỉ phổ (spectral
+  leakage), bù đắp một phần bởi overlap cao và bộ mã hóa giai đoạn 2.
+\end{itemize}
+
+\textbf{3.3.9. Kết Luận}
+
+DTLN là kiến trúc khử nhiễu giọng nói hiệu quả, kết hợp xử lý miền tần
+số thông qua STFT và miền đặc trưng học được thông qua bộ mã hóa Conv1D
+point-wise. Cơ chế hai giai đoạn với LSTM và Multiplicative Masking cho
+phép mô hình phân tách giọng nói khỏi nhiễu từ hai góc độ biểu diễn bổ
+sung, đạt hiệu năng cạnh tranh với tổng số tham số chỉ khoảng 1,8 triệu.
+
+Với khả năng xử lý thời gian thực (\textasciitilde32 ms latency), hỗ trợ
+xuất TF Lite cho suy luận stateful, và việc đã được huấn luyện trực tiếp
+trên bộ dữ liệu VIVOS tiếng Việt, DTLN là lựa chọn phù hợp cho hệ thống
+hỗ trợ bán hàng thông minh nhúng triển khai trên Raspberry Pi 4, nơi yêu
+cầu cân bằng chặt chẽ giữa hiệu năng khử nhiễu và tài nguyên tính toán
+hạn chế.
+
+\textbf{3.4. Kiến trúc các mô hình xử lý ngôn ngữ (PhoWhisper \&
+RoBERTa)}
+
+\begin{itemize}
+\tightlist
+\item
+  PhoWhisper là phiên bản tinh chỉnh (fine-tuned) của mô hình Whisper,
+  được thiết kế đặc biệt để tối ưu hóa khả năng nhận dạng giọng nói cho
+  tiếng Việt với nhiều giọng vùng miền khác nhau.\\
+\item
+  Model Whisper:
+\end{itemize}
+
+\textbf{3.5. Giao thức truyền thông (Communication Protocols)}
+
+\end{document}
