@@ -103,7 +103,7 @@ Optimizer & Adam, clipnorm=3.0 & Tránh bùng nổ gradient \\
 Luồng xử lý khi nhận request:
 \begin{enumerate}
 \item Đọc file WAV qua SoundFile, validate sample rate (16 kHz).
-\item Convert stereo→mono (nếu cần), cast sang float32.
+\item Convert stereo$\rightarrow$mono (nếu cần), cast sang float32.
 \item Thêm batch dimension, chạy \texttt{model.predict()}.
 \item Clip output vào $[-1, 1]$, ghi file WAV đã khử nhiễu.
 \item Trả file qua HTTP response, xóa file tạm.
@@ -146,7 +146,7 @@ Các phong cách viết được lưu trong SQLite (\texttt{styles.db}) với sc
 \item Validate input bằng Pydantic schema.
 \item Tokenize input (max 512 tokens) qua AutoTokenizer.
 \item Forward pass sinh logits cho 32 danh mục.
-\item Softmax → top-K predictions với category ID, name, display name, score.
+\item Softmax $\rightarrow$ top-K predictions với category ID, name, display name, score.
 \item Trả response kèm inference time.
 \end{enumerate}
 

@@ -9,7 +9,7 @@ các giao thức TCP và HTTP:
 \item \textbf{Thiết bị nhúng ESP32-CAM:} Thu âm thanh (INMP441) và hình ảnh (OV5640),
   truyền dữ liệu real-time đến server qua TCP.
 \item \textbf{Server trung gian (Node.js):} Cầu nối giữa ESP32 và trình duyệt,
-  relay TCP↔WebSocket và proxy API đến các dịch vụ AI.
+  relay TCP$\leftrightarrow$WebSocket và proxy API đến các dịch vụ AI.
 \item \textbf{Dịch vụ khử nhiễu (Noise Reduction):} Mô hình DTLN xử lý khử nhiễu
   giọng nói, triển khai trên Flask.
 \item \textbf{Dịch vụ nhận dạng giọng nói (Voice Rephraze):} Chuyển đổi giọng nói
@@ -64,7 +64,7 @@ ESP32 có 2 nhân xử lý, được phân công như sau:
 \toprule
 \rowcolor{headerblue} \textcolor{white}{\textbf{Core}} & \textcolor{white}{\textbf{Nhiệm vụ}} & \textcolor{white}{\textbf{Chi tiết}} \\
 \midrule
-\rowcolor{rowgray} Core 0 & Audio Capture Task & Đọc I2S liên tục từ INMP441, chuyển đổi 32-bit→16-bit PCM, stream qua TCP port 3002. Stack: 16 KB. \\
+\rowcolor{rowgray} Core 0 & Audio Capture Task & Đọc I2S liên tục từ INMP441, chuyển đổi 32-bit$\rightarrow$16-bit PCM, stream qua TCP port 3002. Stack: 16 KB. \\
 Core 1 & Camera + Main Loop & Chụp JPEG từ OV5640, gửi qua TCP port 3001, xử lý lệnh điều khiển camera từ server. \\
 \bottomrule
 \end{tabular}
@@ -86,7 +86,7 @@ sử dụng I2S port 1.
 \section{Thiết kế dịch vụ khử nhiễu}
 
 Dịch vụ nhận file WAV chứa giọng nói lẫn nhiễu từ ESP32 và trả về audio đã khử nhiễu.
-Triển khai trên Flask 2.3+ với TensorFlow 2.13+, kiến trúc layered (API → Service → Model).
+Triển khai trên Flask 2.3+ với TensorFlow 2.13+, kiến trúc layered (API $\rightarrow$ Service $\rightarrow$ Model).
 
 \begin{itemize}
 \item \textbf{API:} \texttt{POST /denoise} -- multipart/form-data, file WAV tối đa 50 MB.
@@ -170,9 +170,9 @@ trình duyệt, với các chức năng chính:
   duy trì byte-alignment, broadcast qua WebSocket \texttt{/audio} đến browser.
 \item \textbf{HTTP API Proxy:} Chuyển tiếp request từ browser đến các AI services:
   \begin{itemize}
-  \item \texttt{POST /api/process-voice} → Denoise Service → STT Service
-  \item \texttt{POST /api/gen-description} → Voice Rephraze Service
-  \item \texttt{POST /api/classify} → Classification Service
+  \item \texttt{POST /api/process-voice} $\rightarrow$ Denoise Service $\rightarrow$ STT Service
+  \item \texttt{POST /api/gen-description} $\rightarrow$ Voice Rephraze Service
+  \item \texttt{POST /api/classify} $\rightarrow$ Classification Service
   \end{itemize}
 \item \textbf{Giao diện web:} Hiển thị video streaming real-time, biểu đồ amplitude
   âm thanh (30 bars), spectrogram trước/sau khử nhiễu (WaveSurfer.js), kết quả

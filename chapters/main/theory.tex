@@ -107,7 +107,7 @@ Dense & 257 đơn vị & Ánh xạ về không gian bin tần số \\
 Tín hiệu $y_1(t)$ được chiếu sang không gian 256 chiều qua Conv1D point-wise
 (kernel=1, stride=1). Sau InstantLayerNormalization và Separation Kernel thứ hai
 (cùng cấu trúc LSTM), Dense + Sigmoid tạo mask $M_2$ trong không gian đặc trưng.
-Giải mã qua Conv1D point-wise (256→512) với causal padding, rồi Overlap-and-Add
+Giải mã qua Conv1D point-wise (256$\rightarrow$512) với causal padding, rồi Overlap-and-Add
 tạo tín hiệu sạch $\hat{y}(t)$.
 
 \begin{table}[htbp]
@@ -164,7 +164,7 @@ kế thừa và cải tiến từ Whisper. Mô hình hỗ trợ nhận dạng ti
 (WAV, MP3, FLAC, OGG, WebM, M4A).
 
 Trong dự án, lịch sử phát triển module STT trải qua:
-PhoWhisper-tiny (local) → whisper-1 (OpenAI) → gpt-4o-transcribe,
+PhoWhisper-tiny (local) $\rightarrow$ whisper-1 (OpenAI) $\rightarrow$ gpt-4o-transcribe,
 với mỗi bước nâng cấp cải thiện đáng kể chất lượng nhận dạng tiếng Việt.
 
 \subsection{GPT-4o-mini}
