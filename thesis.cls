@@ -3,7 +3,7 @@
 
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{memoir}}
 \ProcessOptions\relax
-\LoadClass[12pt,a4paper]{memoir}
+\LoadClass[12pt,a4paper,oneside]{memoir}
 
 \RequirePackage[utf8]{vntex,inputenc}
 \RequirePackage{anyfontsize,mathptmx}
@@ -16,24 +16,24 @@
 \RequirePackage{fancyhdr,hyperref}
 \RequirePackage[super,square,sort]{natbib}
 
-% Change to [english,vietnamese] to use Vietnamese labels
-\RequirePackage[english]{babel}
+% Vietnamese labels
+\RequirePackage[vietnamese]{babel}
 
 % Custom commands
 \newcommand{\Month}{
   \ifcase \the\month
-  \or January
-  \or February
-  \or March
-  \or April
-  \or May
-  \or June
-  \or July
-  \or August
-  \or September
-  \or October
-  \or November
-  \or December
+  \or Tháng 1
+  \or Tháng 2
+  \or Tháng 3
+  \or Tháng 4
+  \or Tháng 5
+  \or Tháng 6
+  \or Tháng 7
+  \or Tháng 8
+  \or Tháng 9
+  \or Tháng 10
+  \or Tháng 11
+  \or Tháng 12
   \fi
 }
 
@@ -69,10 +69,10 @@
 \newcommand{\@stuname}{STUDENT:\ H (xxxxxxx)}
 \newcommand{\stuname}[1]{\renewcommand{\@stuname}{#1}}
 
-\newcommand{\@reportplace}{Ho Chi Minh City}
+\newcommand{\@reportplace}{Hà Nội}
 \newcommand{\reportplace}[1]{\renewcommand{\@reportplace}{#1}}
 
-\newcommand{\@reporttime}{\Month \the\year}
+\newcommand{\@reporttime}{\Month{} năm \the\year}
 \newcommand{\reporttime}[1]{\renewcommand{\@reporttime}{#1}}
 
 % Configurations
@@ -102,7 +102,14 @@
 \setlength{\cfttablenumwidth}{3em}
 \setlength{\cftfigurenumwidth}{3em}
 
-\AtBeginDocument{\renewcommand*\bibname{References}}
+\AtBeginDocument{
+  \renewcommand*\bibname{Tài liệu tham khảo}
+  \renewcommand{\contentsname}{Mục lục}
+  \renewcommand{\listtablename}{Danh sách bảng}
+  \renewcommand{\listfigurename}{Danh sách hình}
+  \renewcommand{\chaptername}{Chương}
+  \renewcommand{\appendixname}{Phụ lục}
+}
 
 \hypersetup{
   colorlinks=true,
@@ -178,21 +185,19 @@
     \MakeUppercase{\@reportplace, \@reporttime}
   \end{center}
   \normalsize
-  \cleardoublepage%
+  \clearpage%
 
   \pagestyle{fancy}
 }
 
 \providecommand{\phantomsection}{}
 \newenvironment{preface}[1]{
-  \cleardoublepage%
-  \vspace*{\stretch{2}}
+  \clearpage%
   \thispagestyle{plain}
   {\noindent \bfseries \Huge #1}%
   \phantomsection\addcontentsline{toc}{chapter}{#1}
-  \begin{center}
-  \end{center}
+  \vspace{1em}
+  \par
 }{
-  \vspace*{\stretch{5}}
-  \cleardoublepage%
+  \clearpage%
 }

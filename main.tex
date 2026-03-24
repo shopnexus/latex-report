@@ -1,27 +1,14 @@
 % 'draft' mode can be used to speed up compilation
 \documentclass[final]{thesis}
 
-% Include other pdf files, e.g. evaluation sheets
-%\usepackage{pdfpages}
-
-% List of symbols
-%\usepackage[pageno]{listofsymbols}
-
 % Table styling
 \usepackage[table]{xcolor}
 \definecolor{headerblue}{RGB}{41, 65, 122}
 \definecolor{rowgray}{RGB}{240, 243, 250}
 \usepackage{booktabs,array}
 
-% Draft watermark
-% https://github.com/callegar/LaTeX-draftwatermark
-
 % References
-% Use \cref {} or \Cref{} instead of \ref{}
 \usepackage[nameinlink]{cleveref}
-
-% Sub-preambles
-% https://tex.stackexchange.com/a/395416
 
 % Configurations
 \reporttype{BÁO CÁO ĐỒ ÁN MÔN HỌC}
@@ -31,7 +18,6 @@
   Ths. Nguyễn Trọng Kiên
 }
 \groupnum{ 10:}
-%\secretary{Assoc.~Prof.~Dr.~H}
 \stuname{
 \begin{tabular}{ p{6cm} p{4cm} }
 Hồ Công Toản        & N22DCCN086 \\
@@ -41,34 +27,16 @@ Hoàng Phi Long      & N22DCCN048 \\
 \end{tabular}
 }
 
-% Allow page breaks inside align* environment
-%\allowdisplaybreaks{}
-
-% Makes a lot of things blue, avoid at all costs
-%\everymath{\color{blue}}
-
-% Custom commands
-%\newcommand*\mean[1]{\bar{#1}}
-
 \begin{document}
 \coverpage%
 
-% [openright=true] does not work properly
-%\includepdf[pages=-]{chapters/evaluation-sheet-1.pdf}
-%\cleardoublepage
-%\includepdf[pages=-]{chapters/evaluation-sheet-2.pdf}
-%\cleardoublepage
-%\includepdf[pages=-]{chapters/evaluation-sheet-3.pdf}
-
 \frontmatter%
 
-\include{chapters/front/declaration.tex}
-\include{chapters/front/acknowledge.tex}
-\include{chapters/front/abstract.tex}
+\input{chapters/front/declaration.tex}
+\input{chapters/front/acknowledge.tex}
+\input{chapters/front/abstract.tex}
 
 \tableofcontents
-%\clearpage
-%\listofsymbols%
 \clearpage
 \listoftables
 \clearpage
@@ -81,20 +49,13 @@ Hoàng Phi Long      & N22DCCN048 \\
 \counterwithin{table}{section}
 \counterwithin{figure}{section}
 
-\include{chapters/main/overview.tex}
-\include{chapters/main/methodology.tex}
-\include{chapters/main/sys-design.tex}
-\include{chapters/main/eval.tex}
+\input{chapters/main/overview.tex}
+\input{chapters/main/methodology.tex}
+\input{chapters/main/sys-design.tex}
+\input{chapters/main/eval.tex}
 
 \bibliographystyle{plain}
 \bibliography{refs/example.bib}
 \nocite{*}
-
-\appendix%
-
-\include{chapters/back/design-docs.tex}
-\include{chapters/back/test-suite.tex}
-
-\backmatter%
 
 \end{document}
