@@ -31,7 +31,7 @@ Hệ thống bao gồm 4 thành phần chính:
   đến \textbf{Noise Reduction Service} (port 5000).
 \item Audio đã khử nhiễu được gửi đến \textbf{Voice Rephraze Service} (port 5001)
   để chuyển thành text và sinh mô tả sản phẩm theo phong cách viết được chọn.
-\item Text mô tả được gửi đến \textbf{Product Classification Service} (port 8000)
+\item Text mô tả được gửi đến \textbf{Product Classification Service} (port 5002)
   để phân loại vào 1 trong 32 danh mục thương mại điện tử.
 \item Kết quả hiển thị trên giao diện web: spectrogram trước/sau khử nhiễu,
   text nhận dạng, mô tả đã sinh, và top-K danh mục dự đoán.
@@ -49,7 +49,7 @@ Hệ thống bao gồm 4 thành phần chính:
 Server trung gian & Node.js + Express & 3000 & Relay TCP$\leftrightarrow$WebSocket, proxy API \\
 \rowcolor{rowgray} Noise Reduction & Flask + TensorFlow & 5000 & Khử nhiễu DTLN \\
 Voice Rephraze & FastAPI + OpenAI & 5001 & STT + sinh mô tả \\
-\rowcolor{rowgray} Product Classification & FastAPI + PyTorch & 8000 & Phân loại 32 danh mục \\
+\rowcolor{rowgray} Product Classification & FastAPI + PyTorch & 5002 & Phân loại 32 danh mục \\
 \bottomrule
 \end{tabular}
 \end{table}
