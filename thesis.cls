@@ -224,7 +224,8 @@
 % ============================================================
 % Chapter heading style — cleaner look
 % ============================================================
-\renewcommand{\chapterheadstart}{\vspace*{0pt}}
+\setlength{\beforechapskip}{0pt}
+\renewcommand{\chapterheadstart}{\vspace*{-\topskip}\vspace*{-\baselineskip}}
 \renewcommand{\afterchapternum}{\par\nobreak\vskip 8pt}
 \renewcommand{\printchaptername}{}
 \renewcommand{\chapternamenum}{}
