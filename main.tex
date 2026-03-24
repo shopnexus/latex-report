@@ -1,13 +1,20 @@
 % 'draft' mode can be used to speed up compilation
 \documentclass[final]{thesis}
 
-% Table styling
-\usepackage[table]{xcolor}
-\definecolor{headerblue}{RGB}{41, 65, 122}
-\definecolor{rowgray}{RGB}{240, 243, 250}
+% Table packages (colors already defined in thesis.cls)
 \usepackage{booktabs,array}
 
-% References
+% Code listings for inline code
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=none,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+% cleveref MUST come after hyperref (loaded in thesis.cls)
 \usepackage[nameinlink]{cleveref}
 
 % Configurations
@@ -43,11 +50,6 @@ Hoàng Phi Long      & N22DCCN048 \\
 \listoffigures
 
 \mainmatter%
-
-% Set depth of numbering depth for counters
-\counterwithin{equation}{section}
-\counterwithin{table}{section}
-\counterwithin{figure}{section}
 
 \input{chapters/main/overview.tex}
 \input{chapters/main/methodology.tex}
