@@ -9,26 +9,42 @@
 
 \section{Thiết kế dịch vụ khử nhiễu}
 
-Dịch vụ khử nhiễu được thiết kế theo kiến trúc layered gồm 3 tầng: API,
-Service và Model. Tầng API tiếp nhận file WAV qua endpoint
-\texttt{POST /denoise} (multipart/form-data, tối đa 50 MB) và cung cấp
-endpoint \texttt{GET /health} để giám sát trạng thái. Tầng Service chịu trách
-nhiệm tiền xử lý audio (validate sample rate, chuyển stereo sang mono) và hậu
-xử lý kết quả. Tầng Model quản lý mô hình DTLN theo Singleton Pattern --- model
-được load một lần duy nhất khi khởi động và cache trong bộ nhớ, tránh chi phí
-khởi tạo lặp lại cho mỗi request.
+Dịch vụ khử nhiễu được thiết kế theo kiến trúc layered rõ ràng, tách biệt
+các tầng xử lý để dễ bảo trì và mở rộng. Tầng API (\texttt{api/routes.py})
+tiếp nhận HTTP request qua Flask Blueprint, thực hiện validate file đầu vào
+và trả response. Tầng Service (\texttt{services/noise\_reduction.py}) chứa
+logic nghiệp vụ: đọc file WAV, tiền xử lý audio (chuyển stereo sang mono,
+normalize sang float32), gọi model inference, hậu xử lý kết quả (clip output,
+ghi file). Tầng Model (\texttt{services/dtln\_model.py}) triển khai kiến trúc
+DTLN bằng TensorFlow/Keras, xây dựng graph tính toán và load trọng số.
 
-Framework được chọn là Flask 2.3+ kết hợp TensorFlow 2.13+, phù hợp với yêu
-cầu xử lý đồng bộ của pipeline khử nhiễu vì mỗi request cần chờ model xử lý
-xong trước khi trả kết quả.
+Dịch vụ cung cấp hai endpoint chính. Endpoint \texttt{POST /denoise} nhận
+file WAV qua multipart/form-data (tối đa 50 MB), xử lý khử nhiễu và trả
+về file WAV đã làm sạch. Endpoint \texttt{GET /health} trả về trạng thái
+dịch vụ bao gồm: tình trạng model (ready/not ready), đường dẫn file trọng số,
+sample rate, và input/output shape của model.
+
+Mô hình DTLN được quản lý theo Singleton Pattern thông qua phương thức
+\texttt{\_\_new\_\_()} --- model chỉ được load một lần duy nhất vào bộ nhớ
+khi request đầu tiên đến, các request sau tái sử dụng cùng instance. Điều này
+tránh chi phí khởi tạo lặp lại (mỗi lần load mất 2--3 giây) và đảm bảo
+sử dụng bộ nhớ hiệu quả.
+
+Framework được chọn là Flask 2.3+ kết hợp TensorFlow 2.13+. Flask phù hợp
+với yêu cầu xử lý đồng bộ của pipeline khử nhiễu --- mỗi request cần chờ
+model xử lý xong trước khi trả kết quả. CORS được bật cho tất cả origins
+để cho phép gọi từ ESP32 và web client. Ứng dụng sử dụng Factory Pattern
+(\texttt{create\_app()}) để khởi tạo, hỗ trợ cấu hình development và
+production riêng biệt.
 
 \begin{figure}[htbp]
 \centering
 \fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
 \textit{Thêm hình: Sơ đồ kiến trúc layered dịch vụ khử nhiễu --- 3 tầng:
-API Layer (Flask endpoints) $\rightarrow$ Service Layer (tiền/hậu xử lý audio)
-$\rightarrow$ Model Layer (DTLN Singleton). Thể hiện luồng request từ client
-qua từng tầng.}
+API Layer (Flask Blueprint: /denoise, /health) $\rightarrow$ Service Layer
+(NoiseReductionService: đọc WAV, tiền xử lý, hậu xử lý) $\rightarrow$
+Model Layer (DTLN Singleton: STFT, LSTM, iFFT). Thể hiện luồng request
+từ client qua từng tầng.}
 \vspace{2cm}}}
 \caption{Kiến trúc dịch vụ khử nhiễu}
 \label{fig:denoise-architecture}
@@ -43,6 +59,16 @@ qua từng tầng.}
 \section{Cài đặt dịch vụ khử nhiễu}
 
 \subsection{Huấn luyện trên VIVOS}
+
+Mô hình DTLN được huấn luyện trên bộ dữ liệu tiếng Việt VIVOS làm nguồn
+giọng nói sạch, kết hợp với dữ liệu nhiễu Microsoft DNS ở các mức SNR
+ngẫu nhiên để tạo cặp dữ liệu huấn luyện (audio nhiễu, audio sạch).
+Quá trình huấn luyện sử dụng đoạn audio 3 giây (phù hợp với độ dài trung
+bình 3--5 giây của VIVOS), batch size 32, và optimizer Adam với clipnorm 3.0
+để tránh bùng nổ gradient. Learning rate ban đầu $10^{-3}$ được giảm tự
+động qua ReduceLROnPlateau khi validation loss không cải thiện, kết hợp
+Early Stopping sau 10 epoch không tiến triển để tránh overfitting.
+\Cref{tab:training-config} tổng hợp cấu hình huấn luyện.
 
 \begin{table}[htbp]
 \centering
@@ -64,15 +90,57 @@ Optimizer & Adam, clipnorm=3.0 & Tránh bùng nổ gradient \\
 \end{tabular}
 \end{table}
 
+Model sau huấn luyện được lưu dưới dạng file HDF5
+(\texttt{DTLN\_vivos\_best.h5}, 3,9 MB) chứa toàn bộ trọng số của
+khoảng 1,8 triệu tham số.
+
+\subsection{Cài đặt mô hình DTLN}
+
+Kiến trúc DTLN được triển khai trong file \texttt{dtln\_model.py} bằng
+TensorFlow/Keras với các hyperparameter: 128 LSTM units, 2 lớp LSTM mỗi
+giai đoạn, dropout 0.25, encoder size 256, block length 512 mẫu và
+block shift 128 mẫu. Phương thức \texttt{build\_DTLN\_model()} xây dựng
+graph tính toán gồm: lớp STFT (framing + rFFT), Separation Kernel thứ nhất
+(2 LSTM + Dense + Sigmoid mask nhân với magnitude, kết hợp phase gốc, iFFT),
+lớp Conv1D encoder (chiếu sang 256 chiều), Separation Kernel thứ hai
+(2 LSTM + Dense + Sigmoid mask trong không gian đặc trưng), Conv1D decoder
+(256$\rightarrow$512 với causal padding), và overlap-and-add để tái tạo
+tín hiệu thời gian.
+
+Lớp \texttt{InstantLayerNormalization} tùy chỉnh thực hiện chuẩn hóa
+theo channel (axis=$-1$) với tham số gamma và beta có thể học được,
+áp dụng công thức $(x - \mu) / \sqrt{\sigma^2 + \epsilon}$ với
+$\epsilon = 10^{-7}$.
+
 \subsection{Pipeline xử lý khử nhiễu}
 
-Khi nhận request, dịch vụ đọc file WAV qua thư viện SoundFile và validate
-rằng sample rate là 16 kHz --- nếu không, trả về lỗi 400 Bad Request.
-File stereo (nếu có) được convert sang mono bằng cách lấy trung bình hai kênh,
-sau đó cast sang float32 trong phạm vi $[-1, 1]$. Tín hiệu được thêm batch
-dimension và đưa qua \texttt{model.predict()} để khử nhiễu. Đầu ra được clip
-vào phạm vi $[-1, 1]$ để tránh clipping khi ghi file, sau đó lưu thành file
-WAV tạm thời và trả về client qua HTTP response. File tạm được xóa ngay sau
-khi gửi xong để tránh tích tụ trên disk.
+Khi nhận request tại \texttt{POST /denoise}, tầng API thực hiện validate:
+kiểm tra file tồn tại trong request, filename không rỗng, và extension là
+\texttt{.wav} (duy nhất được chấp nhận). Filename được sanitize qua
+\texttt{werkzeug.utils.secure\_filename} trước khi lưu tạm với prefix
+\texttt{input\_} vào thư mục \texttt{uploads/}.
+
+Tầng Service đọc file WAV qua thư viện SoundFile, tự động normalize sang
+float32 trong phạm vi $[-1, 1]$. Nếu sample rate khác 16 kHz, hệ thống
+ghi log cảnh báo nhưng vẫn tiếp tục xử lý. File stereo được convert sang
+mono bằng cách lấy trung bình hai kênh (\texttt{np.mean(audio, axis=1)}).
+Tín hiệu sau đó được thêm batch dimension (\texttt{np.expand\_dims}) và
+đưa qua \texttt{model.predict(verbose=0)} để khử nhiễu. Đầu ra được
+\texttt{np.clip} vào $[-1, 1]$ và ghi thành file WAV với prefix
+\texttt{denoised\_}.
+
+File kết quả được gửi về client qua \texttt{send\_file()} với MIME type
+\texttt{audio/wav}. Cả file input và output tạm đều được xóa tự động
+sau khi response gửi xong thông qua callback \texttt{response.call\_on\_close},
+đảm bảo cleanup ngay cả khi có lỗi xảy ra trong quá trình gửi.
+
+\subsection{Xử lý lỗi}
+
+Dịch vụ xử lý 5 loại lỗi HTTP: 400 (file thiếu, filename rỗng, extension
+không hợp lệ, audio format sai), 404 (file không tìm thấy), 413 (file
+vượt quá 50 MB --- Flask tự xử lý qua \texttt{MAX\_CONTENT\_LENGTH}),
+và 500 (lỗi nội bộ). Tất cả response lỗi trả về JSON với trường
+\texttt{error} và \texttt{message}. File tạm luôn được cleanup kể cả
+trong trường hợp exception.
 
 }% end \implDenoise

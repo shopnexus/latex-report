@@ -9,46 +9,55 @@
 
 \section{Thiết kế dịch vụ phân loại sản phẩm}
 
-Dịch vụ phân loại sản phẩm được xây dựng trên FastAPI 0.115, sử dụng PyTorch
-2.5.1 và HuggingFace Transformers 4.46.3. Mô hình XLM-RoBERTa được load khi
-khởi động thông qua FastAPI Lifespan Context Manager, tự động phát hiện GPU
-và fallback về CPU nếu không có, đồng thời được đặt ở chế độ evaluation để
-tối ưu hiệu năng suy luận.
+Dịch vụ phân loại sản phẩm (E-Commerce Product Classifier API, version 2.0.0)
+được xây dựng trên FastAPI 0.115 với PyTorch 2.5.1 và HuggingFace
+Transformers 4.46.3. Kiến trúc gồm hai module chính: \texttt{main.py} chứa
+toàn bộ FastAPI application (endpoints, Pydantic models, model lifecycle),
+và \texttt{categories.py} định nghĩa hệ thống phân loại 32 danh mục với
+ánh xạ hai chiều name$\leftrightarrow$ID.
 
-Dịch vụ cung cấp hai endpoint phân loại chính: \texttt{POST /classify} cho
-phân loại đơn lẻ với kết quả top-K predictions, và \texttt{POST /classify/batch}
-cho xử lý hàng loạt tối đa 100 items với batch\_size 32. Ngoài ra, các endpoint
-phụ trợ bao gồm \texttt{GET /categories} để lấy danh sách 32 danh mục,
-\texttt{GET /model-info} để truy vấn metadata mô hình, và \texttt{GET /health}
-để kiểm tra sức khỏe dịch vụ.
+Mô hình XLM-RoBERTa (\texttt{Lezh1n/xlm-roberta-ecommerce-classifier})
+được load khi khởi động thông qua FastAPI Lifespan Context Manager --- một
+asynccontextmanager quản lý toàn bộ vòng đời model: khởi tạo tokenizer
+và model từ HuggingFace Hub, chuyển model sang thiết bị phù hợp (CUDA nếu
+có GPU, CPU nếu không), đặt ở chế độ \texttt{model.eval()} để tắt dropout
+và cố định batch normalization, sau đó tạo HuggingFace pipeline
+\texttt{text-classification} với \texttt{top\_k=None} để trả về confidence
+score cho tất cả 32 danh mục. Khi server shutdown, GPU memory được giải
+phóng qua \texttt{torch.cuda.empty\_cache()}.
+
+Dịch vụ cung cấp 8 REST endpoints được tổ chức theo 3 nhóm: General
+(\texttt{GET /}, \texttt{GET /health}), Classification (\texttt{POST /classify},
+\texttt{POST /classify/batch}), và Categories (\texttt{GET /categories},
+\texttt{GET /categories/\{id\}}, \texttt{GET /categories/name/\{name\}},
+\texttt{GET /model-info}). CORS middleware được bật cho tất cả origins
+để cho phép gọi từ web client.
 
 \begin{table}[htbp]
 \centering
 \caption{API endpoints dịch vụ phân loại}
 \label{tab:classify-api}
-\begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\raggedright\arraybackslash}p{0.55\linewidth}}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.38\linewidth} >{\raggedright\arraybackslash}p{0.52\linewidth}}
 \toprule
 \rowcolor{headerblue} \textcolor{white}{\textbf{Endpoint}} & \textcolor{white}{\textbf{Chức năng}} \\
 \midrule
 \rowcolor{rowgray} \texttt{POST /classify} & Phân loại 1 sản phẩm, trả top-K predictions \\
 \texttt{POST /classify/batch} & Batch tối đa 100 items (batch\_size=32) \\
-\rowcolor{rowgray} \texttt{GET /categories} & Danh sách 32 danh mục \\
-\texttt{GET /model-info} & Metadata và metrics mô hình \\
-\rowcolor{rowgray} \texttt{GET /health} & Health check \\
+\rowcolor{rowgray} \texttt{GET /categories} & Danh sách đầy đủ 32 danh mục \\
+\texttt{GET /categories/\{id\}} & Tra cứu danh mục theo ID (0--31) \\
+\rowcolor{rowgray} \texttt{GET /categories/name/\{name\}} & Tra cứu danh mục theo tên \\
+\texttt{GET /model-info} & Metadata: base model, số tham số, accuracy \\
+\rowcolor{rowgray} \texttt{GET /health} & Trạng thái model, device, số danh mục \\
+\texttt{GET /} & Thông tin API version và model \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Hệ thống phân loại sản phẩm vào 32 danh mục thương mại điện tử, bao gồm:
-Electronics, Computers \& Networking, Mobile Phones \& Tablets, Fashion \& Clothing,
-Shoes \& Footwear, Bags \& Luggage, Watches, Jewelry, Fashion Accessories,
-Beauty \& Personal Care, Health \& Wellness, Sports \& Outdoors, Home Furniture,
-Home Decor \& Lighting, Kitchen \& Dining, Bedding \& Bath, Large Appliances,
-Small Appliances, Grocery \& Food, Baby \& Maternity, Toys \& Games, Books \& Media,
-Stationery \& Office Supplies, Pet Supplies, Automotive \& Motorcycle,
-Tools \& Hardware, Garden \& Outdoor Living, Musical Instruments,
-Video Games \& Gaming, Software \& Digital Goods, Arts \& Crafts,
-và Industrial \& Commercial.
+Hệ thống phân loại 32 danh mục thương mại điện tử phổ biến, được định nghĩa
+trong \texttt{categories.py} với mỗi danh mục gồm: ID số (0--31), tên nội bộ
+(ví dụ: \texttt{electronics}), tên hiển thị (ví dụ: ``Electronics''), và mô tả
+chi tiết các sản phẩm thuộc danh mục đó. Các danh mục bao phủ đa dạng lĩnh
+vực từ Electronics, Fashion, Home, Food, đến Industrial \& Commercial.
 
 }% end \designClassify
 
@@ -58,22 +67,55 @@ và Industrial \& Commercial.
 
 \section{Cài đặt dịch vụ phân loại sản phẩm}
 
+\subsection{Validation đầu vào}
+
+Dịch vụ sử dụng Pydantic v2 với \texttt{ConfigDict} để validate tất cả
+request. Đối với endpoint \texttt{POST /classify}, text đầu vào bị ràng
+buộc 1--2000 ký tự (\texttt{Field(min\_length=1, max\_length=2000)}) và
+tham số \texttt{top\_k} giới hạn trong khoảng 1--32 (mặc định 5). Đối với
+endpoint batch, danh sách texts bị giới hạn 1--100 items. Request không
+hợp lệ bị từ chối trước khi đến logic xử lý, trả về lỗi 422 với chi tiết
+validation từ Pydantic. Mỗi schema đều kèm \texttt{json\_schema\_extra}
+chứa ví dụ minh họa, tự động hiển thị trên Swagger UI tại \texttt{/docs}.
+
 \subsection{Pipeline suy luận}
 
-Client gửi text mô tả sản phẩm qua POST request, input được validate bằng
-Pydantic schema để đảm bảo đúng format. Text sau đó được tokenize (tối đa
-512 tokens) qua AutoTokenizer của HuggingFace, rồi đưa qua forward pass
-để sinh logits cho 32 danh mục. Hàm softmax chuyển logits thành xác suất,
-từ đó trích xuất top-K predictions kèm theo category ID, tên danh mục,
-tên hiển thị và confidence score. Response trả về kèm inference time để
-theo dõi hiệu năng.
+Khi nhận request tại \texttt{POST /classify}, dịch vụ lấy pipeline classifier
+từ \texttt{app.state} và đo thời gian xử lý qua \texttt{time.perf\_counter()}.
+Text đầu vào được đưa trực tiếp qua HuggingFace pipeline, nội bộ thực hiện:
+tokenize (tối đa 512 tokens qua AutoTokenizer), forward pass qua XLM-RoBERTa
+(12 lớp transformer, 768 hidden units), và softmax để sinh confidence score
+cho 32 danh mục. Kết quả raw được chuyển đổi qua hàm \texttt{\_to\_prediction()}
+--- ánh xạ label text sang category ID, internal name, display name qua
+\texttt{categories.py}, kèm confidence score. Nếu model trả về label không
+có trong danh sách 32 danh mục (trường hợp hiếm), hệ thống ghi log warning
+và trả về prediction với \texttt{category\_id=-1} và display name ``Unknown''.
 
-Model được load một lần duy nhất khi khởi động qua FastAPI Lifespan Context
-Manager, tự động phát hiện GPU (fallback về CPU nếu không có) và đặt ở chế
-độ evaluation để tắt dropout và batch normalization tracking, tối ưu tốc
-độ suy luận.
+Endpoint batch (\texttt{POST /classify/batch}) tận dụng khả năng batched
+inference thật sự của HuggingFace pipeline với \texttt{batch\_size=32} ---
+tất cả texts trong request được xử lý trong một forward pass duy nhất qua
+transformer, hiệu quả hơn đáng kể so với gọi lần lượt từng text. Thời gian
+suy luận cho từng item trong batch được đặt là 0.0 (chỉ đo tổng thời gian
+toàn batch) vì tokenization và forward pass được thực hiện chung.
+
+\subsection{Containerization}
+
+Dịch vụ được đóng gói trong Docker container dựa trên \texttt{python:3.11-slim}
+với single worker Uvicorn (1 worker thay vì N workers để tránh nhân bản
+model 1,1 GB trong RAM cho mỗi worker). Docker Compose cấu hình volume
+\texttt{model-cache} ánh xạ đến \texttt{HF\_HOME} để cache model đã download
+từ HuggingFace Hub, tránh download lại khoảng 1,1 GB mỗi lần restart
+container. Health check chạy mỗi 30 giây với start period 90 giây (thời
+gian chờ download model lần đầu), đánh dấu container unhealthy nếu 3 lần
+check liên tiếp thất bại.
 
 \subsection{Hiệu năng}
+
+\Cref{tab:classify-benchmark} trình bày benchmark hiệu năng trên CPU và GPU.
+Single inference trên CPU đạt khoảng 45 ms (22 req/s), trong khi trên GPU
+giảm xuống 15 ms (66 req/s). Batch processing cho throughput cao hơn đáng kể:
+55 items/s (CPU) và 125 items/s (GPU) nhờ amortize overhead của tokenization
+và model loading trên nhiều items.
 
 \begin{table}[htbp]
 \centering
@@ -81,7 +123,7 @@ Manager, tự động phát hiện GPU (fallback về CPU nếu không có) và 
 \label{tab:classify-benchmark}
 \begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\centering\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.2\linewidth}}
 \toprule
-\rowcolor{headerblue} \textcolor{white}{\textbf{Scenario}} & \textcolor{white}{\textbf{Latency}} & \textcolor{white}{\textbf{Throughput}} \\
+\rowcolor{headerblue} \textcolor{white}{\textbf{Cấu hình}} & \textcolor{white}{\textbf{Latency}} & \textcolor{white}{\textbf{Throughput}} \\
 \midrule
 \rowcolor{rowgray} Single inference (CPU) & $\approx$ 45 ms & 22 req/s \\
 Batch 10 items (CPU) & $\approx$ 180 ms & 55 items/s \\
