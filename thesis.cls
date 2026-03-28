@@ -206,7 +206,7 @@
   \clearpage%
   \thispagestyle{plain}
   {\noindent \bfseries \Huge #1}%
-  \phantomsection\addcontentsline{toc}{chapter}{#1}
+
   \vspace{1em}
   \par\noindent
 }{%
