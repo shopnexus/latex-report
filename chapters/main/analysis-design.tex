@@ -1,22 +1,33 @@
-\chapter{Phân tích và thiết kế hệ thống}
+\chapter{Thiết kế hệ thống}
 
 \section{Kiến trúc tổng thể}
 
-Hệ thống ShopNexus bao gồm 5 thành phần chính, giao tiếp với nhau qua
-các giao thức TCP và HTTP:
+Hệ thống ShopNexus được thiết kế theo kiến trúc microservices, trong đó mỗi
+thành phần đảm nhận một chức năng riêng biệt và giao tiếp với nhau thông qua
+các giao thức TCP và HTTP. Việc tách biệt các dịch vụ cho phép phát triển,
+triển khai và mở rộng từng thành phần một cách độc lập.
 
-\begin{enumerate}
-\item \textbf{Thiết bị nhúng ESP32-CAM:} Thu âm thanh (INMP441) và hình ảnh (OV5640),
-  truyền dữ liệu real-time đến server qua TCP.
-\item \textbf{Server trung gian (Node.js):} Cầu nối giữa ESP32 và trình duyệt,
-  relay TCP$\leftrightarrow$WebSocket và proxy API đến các dịch vụ AI.
-\item \textbf{Dịch vụ khử nhiễu (Noise Reduction):} Mô hình DTLN xử lý khử nhiễu
-  giọng nói, triển khai trên Flask.
-\item \textbf{Dịch vụ nhận dạng giọng nói (Voice Rephraze):} Chuyển đổi giọng nói
-  thành văn bản và sinh mô tả sản phẩm, triển khai trên FastAPI.
-\item \textbf{Dịch vụ phân loại sản phẩm (Product Classification):} Phân loại sản phẩm
-  vào 32 danh mục sử dụng XLM-RoBERTa, triển khai trên FastAPI.
-\end{enumerate}
+Toàn bộ hệ thống bao gồm 5 thành phần chính. Thiết bị nhúng ESP32-CAM đóng
+vai trò đầu vào, thu âm thanh qua microphone INMP441 và hình ảnh qua camera
+OV5640, sau đó truyền dữ liệu real-time đến server thông qua TCP. Server
+trung gian chạy trên Node.js hoạt động như cầu nối giữa thiết bị nhúng và
+trình duyệt, thực hiện relay TCP$\leftrightarrow$WebSocket đồng thời đóng vai
+trò proxy chuyển tiếp request đến các dịch vụ AI phía sau. Ba dịch vụ AI
+được triển khai riêng biệt: dịch vụ khử nhiễu sử dụng mô hình DTLN trên Flask,
+dịch vụ nhận dạng giọng nói và sinh mô tả sản phẩm trên FastAPI, và dịch vụ
+phân loại sản phẩm sử dụng XLM-RoBERTa cũng trên FastAPI.
+\Cref{fig:system-architecture} minh họa kiến trúc tổng thể của hệ thống.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2.5cm}
+\textit{Thêm hình: Sơ đồ kiến trúc tổng thể hệ thống --- thể hiện 5 thành phần
+(ESP32-CAM, Node.js Server, Noise Reduction, Voice Rephraze, Product Classification)
+cùng các kết nối TCP/HTTP/WebSocket giữa chúng và trình duyệt.}
+\vspace{2.5cm}}}
+\caption{Kiến trúc tổng thể hệ thống ShopNexus}
+\label{fig:system-architecture}
+\end{figure}
 
 \begin{table}[htbp]
 \centering
@@ -37,24 +48,42 @@ Voice Rephraze & FastAPI + OpenAI & 5001 & STT + sinh mô tả \\
 
 \section{Luồng xử lý chính}
 
-\begin{enumerate}
-\item ESP32 thu âm thanh từ microphone INMP441 (16-bit PCM, 16 kHz, mono) và gửi
-  qua TCP port 3002 đến server trung gian.
-\item Server trung gian (Node.js) nhận stream PCM, đóng gói thành file WAV và gửi
-  đến \textbf{Noise Reduction Service} (port 5000).
-\item Audio đã khử nhiễu được gửi đến \textbf{Voice Rephraze Service} (port 5001)
-  để chuyển thành text và sinh mô tả sản phẩm theo phong cách viết được chọn.
-\item Text mô tả được gửi đến \textbf{Product Classification Service} (port 5002)
-  để phân loại vào 1 trong 32 danh mục thương mại điện tử.
-\item Kết quả hiển thị trên giao diện web: spectrogram trước/sau khử nhiễu,
-  text nhận dạng, mô tả đã sinh, và top-K danh mục dự đoán.
-\end{enumerate}
+Dữ liệu trong hệ thống đi qua một pipeline tuần tự gồm 5 bước. Đầu tiên,
+ESP32 thu âm thanh từ microphone INMP441 ở định dạng 16-bit PCM, tần số lấy
+mẫu 16 kHz, mono và truyền qua TCP port 3002 đến server trung gian. Tại đây,
+server Node.js nhận stream PCM, đóng gói thành file WAV rồi gửi đến dịch vụ
+khử nhiễu (port 5000) để loại bỏ tạp âm. Audio đã được làm sạch tiếp tục
+được chuyển đến dịch vụ Voice Rephraze (port 5001), nơi giọng nói được nhận
+dạng thành văn bản và tự động sinh mô tả sản phẩm theo phong cách viết do
+người dùng lựa chọn. Văn bản mô tả sau đó được gửi đến dịch vụ phân loại
+(port 5002) để xác định danh mục sản phẩm phù hợp trong 32 danh mục thương
+mại điện tử. Cuối cùng, toàn bộ kết quả --- bao gồm spectrogram trước/sau
+khử nhiễu, text nhận dạng, mô tả đã sinh và top-K danh mục dự đoán ---
+được hiển thị trên giao diện web.
+\Cref{fig:data-pipeline} minh họa luồng xử lý này.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textit{Thêm hình: Sơ đồ luồng xử lý dữ liệu (flowchart hoặc sequence diagram)
+--- từ ESP32 thu âm $\rightarrow$ Node.js đóng gói WAV $\rightarrow$ Denoise (port 5000)
+$\rightarrow$ STT + sinh mô tả (port 5001) $\rightarrow$ Phân loại (port 5002)
+$\rightarrow$ Hiển thị kết quả trên web UI.}
+\vspace{2cm}}}
+\caption{Luồng xử lý dữ liệu trong hệ thống}
+\label{fig:data-pipeline}
+\end{figure}
 
 \section{Thiết kế thiết bị nhúng ESP32}
 
 \subsection{Kiến trúc Dual-Core}
 
-ESP32 có 2 nhân xử lý, được phân công như sau:
+Một trong những quyết định thiết kế quan trọng nhất trên ESP32 là việc phân
+tách tác vụ thu âm thanh và thu hình ảnh lên hai nhân xử lý riêng biệt.
+Core 0 được gán riêng cho Audio Capture Task --- đọc I2S liên tục từ INMP441,
+chuyển đổi từ 32-bit sang 16-bit PCM và stream qua TCP port 3002 với stack
+16 KB. Core 1 đảm nhận Camera và Main Loop --- chụp JPEG từ OV5640, gửi qua
+TCP port 3001, đồng thời xử lý các lệnh điều khiển camera từ server.
 
 \begin{table}[htbp]
 \centering
@@ -71,42 +100,101 @@ Core 1 & Camera + Main Loop & Chụp JPEG từ OV5640, gửi qua TCP port 3001, 
 \end{table}
 
 Việc tách riêng hai core đảm bảo luồng audio chạy liên tục không bị gián đoạn
-bởi camera capture, tránh hiện tượng buffer underrun.
+bởi quá trình chụp ảnh từ camera, tránh hiện tượng buffer underrun --- một vấn
+đề phổ biến khi xử lý đồng thời nhiều nguồn dữ liệu trên vi điều khiển.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textit{Thêm hình: Sơ đồ kiến trúc dual-core ESP32 --- Core 0 chạy Audio Task
+(I2S INMP441 $\rightarrow$ TCP 3002), Core 1 chạy Camera Task
+(OV5640 $\rightarrow$ TCP 3001) + xử lý lệnh điều khiển.
+Thể hiện rõ sự phân tách tác vụ giữa hai nhân.}
+\vspace{2cm}}}
+\caption{Kiến trúc dual-core trên ESP32}
+\label{fig:dual-core}
+\end{figure}
 
 \subsection{Cấu hình chân kết nối}
 
-\textbf{Camera OV5640} sử dụng bus dữ liệu 8-bit song song:
-D0--D7 (GPIO 5, 18, 19, 21, 36, 39, 34, 35), XCLK (GPIO 0), PCLK (GPIO 22),
-VSYNC (GPIO 25), HREF (GPIO 23), SDA (GPIO 26), SCL (GPIO 27), PWDN (GPIO 32).
+Camera OV5640 sử dụng bus dữ liệu 8-bit song song với các chân D0--D7 được ánh
+xạ tới GPIO 5, 18, 19, 21, 36, 39, 34, 35. Các tín hiệu điều khiển bao gồm
+XCLK (GPIO 0), PCLK (GPIO 22), VSYNC (GPIO 25), HREF (GPIO 23), và giao tiếp
+I2C qua SDA (GPIO 26), SCL (GPIO 27). Chân PWDN (GPIO 32) dùng để điều khiển
+chế độ tiết kiệm năng lượng.
 
-\textbf{Microphone INMP441} kết nối qua I2S:
-WS -- Word Select (GPIO 2), SCK -- Serial Clock (GPIO 14), SD -- Serial Data (GPIO 15),
-sử dụng I2S port 1.
+Microphone INMP441 kết nối qua giao thức I2S với 3 chân: WS -- Word Select
+(GPIO 2), SCK -- Serial Clock (GPIO 14), và SD -- Serial Data (GPIO 15),
+sử dụng I2S port 1 để tránh xung đột với các ngoại vi khác trên port 0.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2.5cm}
+\textit{Thêm hình: Sơ đồ đấu nối phần cứng (wiring diagram) --- ESP32-CAM
+kết nối với camera OV5640 (bus 8-bit, I2C) và microphone INMP441 (I2S: WS, SCK, SD).
+Ghi rõ số GPIO cho từng chân.}
+\vspace{2.5cm}}}
+\caption{Sơ đồ kết nối phần cứng ESP32-CAM}
+\label{fig:wiring-diagram}
+\end{figure}
 
 \section{Thiết kế dịch vụ khử nhiễu}
 
-Dịch vụ nhận file WAV chứa giọng nói lẫn nhiễu từ ESP32 và trả về audio đã khử nhiễu.
-Triển khai trên Flask 2.3+ với TensorFlow 2.13+, kiến trúc layered (API $\rightarrow$ Service $\rightarrow$ Model).
+Dịch vụ khử nhiễu được thiết kế theo kiến trúc layered gồm 3 tầng: API,
+Service và Model. Tầng API tiếp nhận file WAV qua endpoint
+\texttt{POST /denoise} (multipart/form-data, tối đa 50 MB) và cung cấp
+endpoint \texttt{GET /health} để giám sát trạng thái. Tầng Service chịu trách
+nhiệm tiền xử lý audio (validate sample rate, chuyển stereo sang mono) và hậu
+xử lý kết quả. Tầng Model quản lý mô hình DTLN theo Singleton Pattern --- model
+được load một lần duy nhất khi khởi động và cache trong bộ nhớ, tránh chi phí
+khởi tạo lặp lại cho mỗi request.
 
-\begin{itemize}
-\item \textbf{API:} \texttt{POST /denoise} -- multipart/form-data, file WAV tối đa 50 MB.
-\item \textbf{Health check:} \texttt{GET /health} -- trạng thái model và thông số.
-\item \textbf{Singleton Pattern:} Model được load một lần khi khởi động, cache trong bộ nhớ.
-\end{itemize}
+Framework được chọn là Flask 2.3+ kết hợp TensorFlow 2.13+, phù hợp với yêu
+cầu xử lý đồng bộ của pipeline khử nhiễu vì mỗi request cần chờ model xử lý
+xong trước khi trả kết quả.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textit{Thêm hình: Sơ đồ kiến trúc layered dịch vụ khử nhiễu --- 3 tầng:
+API Layer (Flask endpoints) $\rightarrow$ Service Layer (tiền/hậu xử lý audio)
+$\rightarrow$ Model Layer (DTLN Singleton). Thể hiện luồng request từ client
+qua từng tầng.}
+\vspace{2cm}}}
+\caption{Kiến trúc dịch vụ khử nhiễu}
+\label{fig:denoise-architecture}
+\end{figure}
 
 \section{Thiết kế dịch vụ nhận dạng giọng nói}
 
-Dịch vụ chuyển đổi giọng nói thành văn bản và sinh mô tả sản phẩm theo
-phong cách viết tùy chọn. Triển khai trên FastAPI với AsyncOpenAI client.
+Dịch vụ Voice Rephraze đảm nhận hai chức năng chính: chuyển đổi giọng nói
+thành văn bản (Speech-to-Text) và sinh mô tả sản phẩm. Cả hai được triển khai
+trên FastAPI với AsyncOpenAI client, tận dụng khả năng xử lý bất đồng bộ để
+gọi API OpenAI hiệu quả hơn.
 
-\begin{itemize}
-\item \textbf{Speech-to-Text:} Sử dụng OpenAI gpt-4o-transcribe (cloud API),
-  hỗ trợ tiếng Việt đa vùng miền.
-\item \textbf{Sinh mô tả:} Sử dụng GPT-4o-mini với prompt engineering,
-  sinh mô tả 3--5 câu theo phong cách viết được chọn.
-\item \textbf{Quản lý phong cách:} Lưu trữ trong SQLite, người dùng có thể
-  thêm phong cách mới qua API.
-\end{itemize}
+Đối với module STT, dự án sử dụng OpenAI gpt-4o-transcribe --- mô hình cloud
+API hỗ trợ nhận dạng tiếng Việt đa vùng miền với nhiều định dạng audio (WAV,
+MP3, FLAC, OGG, WebM, M4A). Module sinh mô tả sử dụng GPT-4o-mini với
+temperature 0.75 và giới hạn 600 tokens. System prompt được thiết kế để AI
+đóng vai copywriter thương mại điện tử, có khả năng trích xuất thông tin sản
+phẩm từ text lộn xộn của STT --- bỏ qua từ lấp, lặp lại và lỗi phát âm ---
+rồi viết 3--5 câu ngắn gọn theo phong cách được chọn.
+
+Hệ thống hỗ trợ nhiều phong cách viết mô tả, được lưu trữ trong SQLite và
+có thể mở rộng thông qua API. \Cref{tab:writing-styles} liệt kê các phong cách
+mặc định.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textit{Thêm hình: Sơ đồ luồng xử lý dịch vụ Voice Rephraze --- Audio đầu vào
+$\rightarrow$ gpt-4o-transcribe (STT) $\rightarrow$ raw text $\rightarrow$
+GPT-4o-mini + prompt engineering + style $\rightarrow$ mô tả sản phẩm hoàn chỉnh.
+Thể hiện cả luồng quản lý phong cách viết từ SQLite.}
+\vspace{2cm}}}
+\caption{Luồng xử lý dịch vụ nhận dạng giọng nói}
+\label{fig:voice-rephraze-flow}
+\end{figure}
 
 \begin{table}[htbp]
 \centering
@@ -126,8 +214,18 @@ Văn hóa người Tày & Yếu tố văn hóa dân tộc, hình ảnh đặc tr
 
 \section{Thiết kế dịch vụ phân loại sản phẩm}
 
-Dịch vụ phân loại text mô tả sản phẩm vào 32 danh mục thương mại điện tử.
-Triển khai trên FastAPI 0.115 với PyTorch 2.5.1 và HuggingFace Transformers 4.46.3.
+Dịch vụ phân loại sản phẩm được xây dựng trên FastAPI 0.115, sử dụng PyTorch
+2.5.1 và HuggingFace Transformers 4.46.3. Mô hình XLM-RoBERTa được load khi
+khởi động thông qua FastAPI Lifespan Context Manager, tự động phát hiện GPU
+và fallback về CPU nếu không có, đồng thời được đặt ở chế độ evaluation để
+tối ưu hiệu năng suy luận.
+
+Dịch vụ cung cấp hai endpoint phân loại chính: \texttt{POST /classify} cho
+phân loại đơn lẻ với kết quả top-K predictions, và \texttt{POST /classify/batch}
+cho xử lý hàng loạt tối đa 100 items với batch\_size 32. Ngoài ra, các endpoint
+phụ trợ bao gồm \texttt{GET /categories} để lấy danh sách 32 danh mục,
+\texttt{GET /model-info} để truy vấn metadata mô hình, và \texttt{GET /health}
+để kiểm tra sức khỏe dịch vụ.
 
 \begin{table}[htbp]
 \centering
@@ -146,8 +244,7 @@ Triển khai trên FastAPI 0.115 với PyTorch 2.5.1 và HuggingFace Transformer
 \end{tabular}
 \end{table}
 
-\subsection{32 danh mục sản phẩm}
-
+Hệ thống phân loại sản phẩm vào 32 danh mục thương mại điện tử, bao gồm:
 Electronics, Computers \& Networking, Mobile Phones \& Tablets, Fashion \& Clothing,
 Shoes \& Footwear, Bags \& Luggage, Watches, Jewelry, Fashion Accessories,
 Beauty \& Personal Care, Health \& Wellness, Sports \& Outdoors, Home Furniture,
@@ -156,25 +253,50 @@ Small Appliances, Grocery \& Food, Baby \& Maternity, Toys \& Games, Books \& Me
 Stationery \& Office Supplies, Pet Supplies, Automotive \& Motorcycle,
 Tools \& Hardware, Garden \& Outdoor Living, Musical Instruments,
 Video Games \& Gaming, Software \& Digital Goods, Arts \& Crafts,
-Industrial \& Commercial.
+và Industrial \& Commercial.
 
 \section{Thiết kế server trung gian}
 
-Server trung gian chạy trên Node.js/Express đóng vai trò cầu nối giữa ESP32 và
-trình duyệt, với các chức năng chính:
+Server trung gian là thành phần kết nối then chốt trong kiến trúc hệ thống,
+chạy trên Node.js/Express tại port 3000. Thành phần này giải quyết sự khác
+biệt về giao thức giữa ESP32 (TCP) và trình duyệt (WebSocket/HTTP), đồng
+thời đóng vai trò điều phối request đến các dịch vụ AI.
 
-\begin{itemize}
-\item \textbf{TCP Camera Server (port 3001):} Nhận JPEG frame từ ESP32,
-  parse 4-byte length header, broadcast qua WebSocket \texttt{/camera} đến browser.
-\item \textbf{TCP Audio Server (port 3002):} Nhận stream 16-bit PCM từ ESP32,
-  duy trì byte-alignment, broadcast qua WebSocket \texttt{/audio} đến browser.
-\item \textbf{HTTP API Proxy:} Chuyển tiếp request từ browser đến các AI services:
-  \begin{itemize}
-  \item \texttt{POST /api/process-voice} $\rightarrow$ Denoise Service $\rightarrow$ STT Service
-  \item \texttt{POST /api/gen-description} $\rightarrow$ Voice Rephraze Service
-  \item \texttt{POST /api/classify} $\rightarrow$ Classification Service
-  \end{itemize}
-\item \textbf{Giao diện web:} Hiển thị video streaming real-time, biểu đồ amplitude
-  âm thanh (30 bars), spectrogram trước/sau khử nhiễu (WaveSurfer.js), kết quả
-  nhận dạng và phân loại sản phẩm.
-\end{itemize}
+Về phía thiết bị nhúng, server duy trì hai TCP server: TCP Camera Server
+(port 3001) nhận JPEG frame từ ESP32, parse header 4 byte chứa độ dài frame
+rồi broadcast qua WebSocket endpoint \texttt{/camera} đến trình duyệt;
+TCP Audio Server (port 3002) nhận stream 16-bit PCM, duy trì byte-alignment
+và broadcast qua WebSocket endpoint \texttt{/audio}.
+
+Về phía trình duyệt, server cung cấp HTTP API Proxy chuyển tiếp request đến
+các dịch vụ AI: \texttt{POST /api/process-voice} gọi tuần tự Denoise Service
+rồi STT Service, \texttt{POST /api/gen-description} gọi Voice Rephraze Service,
+và \texttt{POST /api/classify} gọi Classification Service.
+\Cref{fig:middleware-architecture} minh họa kiến trúc server trung gian.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2.5cm}
+\textit{Thêm hình: Sơ đồ kiến trúc server trung gian --- thể hiện ESP32
+kết nối TCP (port 3001, 3002) đến Node.js, Node.js relay qua WebSocket
+(/camera, /audio) đến Browser, đồng thời proxy HTTP API đến 3 dịch vụ AI.}
+\vspace{2.5cm}}}
+\caption{Kiến trúc server trung gian}
+\label{fig:middleware-architecture}
+\end{figure}
+
+Giao diện web tích hợp hiển thị video streaming real-time, biểu đồ amplitude
+âm thanh 30 bars, spectrogram trước và sau khử nhiễu thông qua thư viện
+WaveSurfer.js, cùng kết quả nhận dạng và phân loại sản phẩm.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2.5cm}
+\textit{Thêm hình: Ảnh chụp màn hình giao diện web --- hiển thị các thành phần:
+video streaming từ camera, biểu đồ amplitude âm thanh, spectrogram trước/sau
+khử nhiễu, kết quả nhận dạng giọng nói, mô tả sản phẩm đã sinh,
+và danh sách top-K danh mục dự đoán.}
+\vspace{2.5cm}}}
+\caption{Giao diện web hệ thống ShopNexus}
+\label{fig:web-ui}
+\end{figure}
