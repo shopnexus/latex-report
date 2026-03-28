@@ -1,0 +1,20 @@
+\section{Các mô hình OpenAI}
+
+\subsection{GPT-4o-transcribe}
+
+GPT-4o-transcribe là mô hình Speech-to-Text mới nhất của OpenAI,
+kế thừa và cải tiến từ Whisper. Mô hình hỗ trợ nhận dạng tiếng Việt
+đa vùng miền với độ chính xác cao, hỗ trợ nhiều định dạng audio
+(WAV, MP3, FLAC, OGG, WebM, M4A).
+
+Trong dự án, lịch sử phát triển module STT trải qua:
+PhoWhisper-tiny (local) $\rightarrow$ whisper-1 (OpenAI) $\rightarrow$ gpt-4o-transcribe,
+với mỗi bước nâng cấp cải thiện đáng kể chất lượng nhận dạng tiếng Việt.
+
+\subsection{GPT-4o-mini}
+
+GPT-4o-mini là mô hình ngôn ngữ lớn (LLM) nhỏ gọn của OpenAI,
+được sử dụng để sinh mô tả sản phẩm từ text nhận dạng giọng nói.
+Mô hình có khả năng hiểu ngữ cảnh, xử lý text lộn xộn từ STT
+(từ lấp, lặp lại, lỗi phát âm) và sinh văn bản mạch lạc theo
+phong cách viết được chỉ định.

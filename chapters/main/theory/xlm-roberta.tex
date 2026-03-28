@@ -1,0 +1,17 @@
+\section{Mô hình XLM-RoBERTa}
+
+XLM-RoBERTa (Cross-lingual Language Model -- Robustly Optimized BERT Approach)
+là mô hình ngôn ngữ đa ngôn ngữ được phát triển bởi Facebook AI, huấn luyện
+trên 2,5 TB dữ liệu CommonCrawl từ 100 ngôn ngữ.
+
+\begin{itemize}
+\item \textbf{Base model:} XLM-RoBERTa-base với 270M tham số.
+\item \textbf{Fine-tuned:} \texttt{Lezh1n/xlm-roberta-ecommerce-classifier}
+  cho phân loại 32 danh mục thương mại điện tử.
+\item \textbf{Kích thước:} $\approx$ 1,1 GB, max sequence 512 tokens.
+\item \textbf{Hiệu năng:} Accuracy 90,14\%, F1-score 90,00\%.
+\end{itemize}
+
+Ưu điểm của XLM-RoBERTa cho bài toán này là khả năng xử lý đa ngôn ngữ
+(cross-lingual transfer), cho phép mô hình hiểu cả text tiếng Việt lẫn
+tên sản phẩm tiếng Anh thường gặp trong thương mại điện tử.

@@ -1,0 +1,43 @@
+\section{Vi điều khiển ESP32}
+
+ESP32 là vi điều khiển do Espressif Systems phát triển, tích hợp WiFi và
+Bluetooth, được sử dụng rộng rãi trong các ứng dụng IoT. Dự án sử dụng
+board ESP32-CAM tích hợp sẵn khe cắm camera và hỗ trợ PSRAM mở rộng.
+
+\begin{table}[htbp]
+\centering
+\caption{Thông số phần cứng ESP32-CAM}
+\label{tab:esp32-hardware}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.3\linewidth} >{\raggedright\arraybackslash}p{0.6\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thành phần}} & \textcolor{white}{\textbf{Thông số}} \\
+\midrule
+\rowcolor{rowgray} Board & ESP32-CAM với PSRAM \\
+Vi xử lý & Xtensa LX6 dual-core, 240 MHz \\
+\rowcolor{rowgray} Camera & OV5640, JPEG, QVGA (320$\times$240) mặc định, hỗ trợ đến UXGA (1600$\times$1200) \\
+Microphone & INMP441 (I2S digital), 16 kHz, mono \\
+\rowcolor{rowgray} Kết nối & WiFi 802.11 b/g/n \\
+Bộ nhớ & 520 KB SRAM + 4 MB PSRAM \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Giao thức I2S}
+
+I2S (Inter-IC Sound) là giao thức truyền thông nối tiếp đồng bộ được thiết kế
+chuyên biệt cho dữ liệu âm thanh số. Giao thức sử dụng 3 đường tín hiệu:
+
+\begin{itemize}
+\item \textbf{SCK (Serial Clock):} Xung nhịp đồng bộ dữ liệu.
+\item \textbf{WS (Word Select):} Chọn kênh trái (0) hoặc kênh phải (1).
+\item \textbf{SD (Serial Data):} Đường dữ liệu nối tiếp.
+\end{itemize}
+
+Microphone INMP441 hỗ trợ I2S với độ phân giải 18-bit, đóng gói trong word
+32-bit. ESP32 hoạt động ở chế độ I2S Master RX, nhận dữ liệu từ microphone.
+
+\subsection{Giao thức TCP}
+
+TCP (Transmission Control Protocol) đảm bảo truyền dữ liệu tin cậy, có thứ tự
+giữa ESP32 và server. Dự án sử dụng TCP cho cả stream audio (port 3002) và
+video (port 3001), đảm bảo không mất frame hay mẫu âm thanh.
