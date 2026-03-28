@@ -2,6 +2,22 @@
 
 \section{Cài đặt thiết bị nhúng ESP32}
 
+\subsection{Môi trường phát triển}
+
+Firmware cho ESP32-CAM được phát triển trên Arduino IDE với ESP32 Board Package
+của Espressif. Các thư viện chính được sử dụng bao gồm: \texttt{esp\_camera.h}
+cho điều khiển camera OV5640, \texttt{driver/i2s.h} cho giao tiếp I2S với
+microphone INMP441, và \texttt{WiFi.h} cho kết nối mạng. Firmware được flash
+qua UART với baudrate 115200.
+
+\subsection{Kết nối WiFi và khởi tạo}
+
+Khi khởi động, ESP32 thực hiện tuần tự các bước: kết nối WiFi đến access point
+được cấu hình sẵn, khởi tạo camera OV5640 với các tham số mặc định (QVGA,
+JPEG quality 12), cấu hình I2S cho microphone INMP441, và cuối cùng thiết lập
+kết nối TCP đến server trung gian. Nếu mất kết nối WiFi trong quá trình hoạt
+động, ESP32 tự động thử kết nối lại với khoảng cách 5 giây giữa các lần thử.
+
 \subsection{Cấu hình I2S}
 
 \begin{table}[htbp]
@@ -24,33 +40,60 @@ Throughput & 32 KB/s ($\approx$ 256 kbps) \\
 \end{tabular}
 \end{table}
 
+Số lượng DMA buffer được tăng từ 8 lên 16 sau quá trình thử nghiệm, nhằm
+giảm hiện tượng buffer overflow khi Core 1 bận xử lý camera capture. Với 16
+buffer, hệ thống có thể chịu được độ trễ tối đa 16 $\times$ 64 ms = 1024 ms
+trước khi mất dữ liệu âm thanh.
+
 \subsection{Chuẩn hóa tín hiệu}
 
 Microphone INMP441 có độ phân giải 18-bit, đóng gói trong word 32-bit với dữ liệu
-nằm ở các bit cao. Quá trình chuẩn hóa:
+nằm ở các bit cao. Quá trình chuẩn hóa bắt đầu bằng việc đọc mẫu 32-bit raw
+từ I2S DMA buffer, sau đó dịch phải 14 bit
+(\texttt{val = raw\_samples[i] >> 14}) để đưa 18 bit dữ liệu hữu ích về
+phạm vi 16-bit. Giá trị sau đó được cắt ngưỡng vào $[-32768, 32767]$ để tránh
+tràn khi có tín hiệu mạnh bất thường, và lưu dưới dạng \texttt{int16\_t}
+để truyền qua TCP.
 
-\begin{enumerate}
-\item Đọc mẫu 32-bit raw từ I2S DMA buffer.
-\item Dịch phải 14 bit: \texttt{val = raw\_samples[i] >> 14}.
-\item Cắt ngưỡng vào phạm vi 16-bit signed: $[-32768, 32767]$.
-\item Lưu dưới dạng \texttt{int16\_t} để truyền qua TCP.
-\end{enumerate}
+Việc dịch phải 14 bit (thay vì 16 bit) là lựa chọn có chủ đích: giữ lại
+toàn bộ 18 bit dữ liệu hữu ích thay vì mất 2 bit thấp, tận dụng tối đa
+độ phân giải của microphone. Trong thực tế, 2 bit thấp nhất thường chứa
+nhiễu lượng tử nên việc mất chúng qua bước cắt ngưỡng không ảnh hưởng
+đáng kể đến chất lượng âm thanh.
 
 \subsection{Pipeline streaming video}
 
-Camera OV5640 được cấu hình chụp JPEG với double buffering (2 frame buffer).
-XCLK mặc định 12 MHz, chất lượng JPEG có thể điều chỉnh (10--63).
+Camera OV5640 được cấu hình chụp JPEG với double buffering (2 frame buffer)
+để tối ưu throughput --- trong khi một buffer đang được gửi qua TCP, camera
+có thể ghi vào buffer còn lại. XCLK mặc định 12 MHz, chất lượng JPEG có
+thể điều chỉnh từ 10 (chất lượng cao nhất, file lớn) đến 63 (chất lượng
+thấp nhất, file nhỏ).
 
-Mỗi frame được truyền qua TCP port 3001 với giao thức:
-\texttt{[Length (4 bytes LE)][JPEG Data (variable)]}.
-Buffer tĩnh 250 KB được cấp phát một lần trên PSRAM (hoặc heap) để tránh
-phân mảnh bộ nhớ.
+Mỗi frame được truyền qua TCP port 3001 với giao thức tự định nghĩa:
+\texttt{[Length (4 bytes LE)][JPEG Data (variable)]}. Header 4 byte chứa
+độ dài frame theo little-endian, cho phép server biết chính xác kích thước
+dữ liệu cần đọc. Buffer tĩnh 250 KB được cấp phát một lần trên PSRAM
+(hoặc heap nếu PSRAM không khả dụng) để tránh phân mảnh bộ nhớ do
+\texttt{malloc/free} lặp lại.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textit{Thêm hình: Sơ đồ cấu trúc TCP frame --- hiển thị header 4 bytes
+(Length, little-endian) theo sau bởi JPEG data có kích thước variable.
+Chú thích ví dụ: Length = 0x00 0x8C 0xA0 0x00 = 36.000 bytes.}
+\vspace{2cm}}}
+\caption{Cấu trúc TCP frame cho video streaming}
+\label{fig:tcp-frame}
+\end{figure}
 
 \subsection{Giao thức điều khiển camera}
 
 Trình duyệt gửi lệnh điều khiển qua WebSocket đến server trung gian,
 server chuyển tiếp qua TCP đến ESP32 với format:
-\texttt{[0xA5][ID (1 byte)][Value (1 byte)]}.
+\texttt{[0xA5][ID (1 byte)][Value (1 byte)]}. Byte magic \texttt{0xA5}
+giúp ESP32 phân biệt lệnh điều khiển với dữ liệu thông thường trên
+cùng kết nối TCP.
 
 \begin{table}[htbp]
 \centering
@@ -73,6 +116,8 @@ server chuyển tiếp qua TCP đến ESP32 với format:
 
 ESP32 phản hồi cài đặt hiện tại qua packet với magic header \texttt{0xBEEF}
 theo format: \texttt{[0xBE][0xEF][ID][Value]...} cho tất cả 21 tham số.
+Phản hồi này được gửi mỗi khi có thay đổi cài đặt, giúp giao diện web
+luôn đồng bộ với trạng thái thực tế của camera.
 
 \implDenoise
 \implVoice

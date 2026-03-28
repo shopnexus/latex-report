@@ -66,13 +66,13 @@ Optimizer & Adam, clipnorm=3.0 & Tránh bùng nổ gradient \\
 
 \subsection{Pipeline xử lý khử nhiễu}
 
-Luồng xử lý khi nhận request:
-\begin{enumerate}
-\item Đọc file WAV qua SoundFile, validate sample rate (16 kHz).
-\item Convert stereo$\rightarrow$mono (nếu cần), cast sang float32.
-\item Thêm batch dimension, chạy \texttt{model.predict()}.
-\item Clip output vào $[-1, 1]$, ghi file WAV đã khử nhiễu.
-\item Trả file qua HTTP response, xóa file tạm.
-\end{enumerate}
+Khi nhận request, dịch vụ đọc file WAV qua thư viện SoundFile và validate
+rằng sample rate là 16 kHz --- nếu không, trả về lỗi 400 Bad Request.
+File stereo (nếu có) được convert sang mono bằng cách lấy trung bình hai kênh,
+sau đó cast sang float32 trong phạm vi $[-1, 1]$. Tín hiệu được thêm batch
+dimension và đưa qua \texttt{model.predict()} để khử nhiễu. Đầu ra được clip
+vào phạm vi $[-1, 1]$ để tránh clipping khi ghi file, sau đó lưu thành file
+WAV tạm thời và trả về client qua HTTP response. File tạm được xóa ngay sau
+khi gửi xong để tránh tích tụ trên disk.
 
 }% end \implDenoise

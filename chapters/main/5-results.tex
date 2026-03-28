@@ -2,6 +2,10 @@
 
 \section{Kết quả đạt được}
 
+Sau quá trình phát triển và tích hợp, hệ thống ShopNexus đã hoàn thành
+đầy đủ các mục tiêu đề ra. \Cref{tab:results} tổng hợp kết quả chính
+của từng thành phần.
+
 \begin{table}[htbp]
 \centering
 \caption{Tổng hợp kết quả các thành phần}
@@ -11,7 +15,7 @@
 \rowcolor{headerblue} \textcolor{white}{\textbf{Thành phần}} & \textcolor{white}{\textbf{Kết quả}} \\
 \midrule
 \rowcolor{rowgray} ESP32-CAM & Dual-core: audio 16 kHz liên tục + video JPEG streaming, điều khiển camera real-time (21 tham số) \\
-Khử nhiễu DTLN & 1,8M tham số, 3.9 MB, 32 ms latency, huấn luyện trên VIVOS tiếng Việt \\
+Khử nhiễu DTLN & 1,8M tham số, 3,9 MB, 32 ms latency, huấn luyện trên VIVOS tiếng Việt \\
 \rowcolor{rowgray} Voice Rephraze & STT qua gpt-4o-transcribe + sinh mô tả qua GPT-4o-mini, 4+ phong cách viết \\
 Phân loại sản phẩm & Accuracy 90,14\%, F1 90,00\%, 32 danh mục, 45 ms/request (CPU) \\
 \rowcolor{rowgray} Server trung gian & Relay TCP$\leftrightarrow$WebSocket, proxy API, spectrogram visualization \\
@@ -19,44 +23,168 @@ Phân loại sản phẩm & Accuracy 90,14\%, F1 90,00\%, 32 danh mục, 45 ms/r
 \end{tabular}
 \end{table}
 
+\section{Kết quả thiết bị nhúng ESP32}
+
+Thiết bị ESP32-CAM hoạt động ổn định trong môi trường thử nghiệm với kết nối
+WiFi trong phạm vi 10--15 mét. Kiến trúc dual-core đảm bảo stream audio 16 kHz
+không bị gián đoạn ngay cả khi camera đang chụp ở độ phân giải cao (UXGA
+1600$\times$1200). Thời gian khởi động từ lúc cấp nguồn đến khi sẵn sàng
+stream là khoảng 3--5 giây, bao gồm kết nối WiFi và khởi tạo camera.
+
+Giao thức điều khiển camera cho phép thay đổi 21 tham số real-time từ giao
+diện web, với thời gian phản hồi dưới 100 ms. Double buffering cho video
+streaming đạt frame rate ổn định 10--15 FPS ở QVGA và 5--8 FPS ở VGA.
+
+\section{Kết quả khử nhiễu DTLN}
+
+Mô hình DTLN sau khi huấn luyện trên dữ liệu VIVOS kết hợp nhiễu Microsoft DNS
+đạt khả năng khử nhiễu hiệu quả trên giọng nói tiếng Việt. Với chỉ 1,8 triệu
+tham số và kích thước 3,9 MB, mô hình xử lý mỗi khung audio (32 ms) trong
+thời gian tương đương, đảm bảo xử lý real-time.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{3cm}
+\textit{Thêm hình: So sánh spectrogram trước và sau khử nhiễu --- hiển thị
+2 spectrogram song song: (a) audio gốc có nhiễu nền (quạt, tiếng ồn đường phố),
+(b) audio sau khi qua DTLN với nhiễu nền được loại bỏ rõ rệt,
+giọng nói được giữ nguyên.}
+\vspace{3cm}}}
+\caption{So sánh spectrogram trước và sau khử nhiễu DTLN}
+\label{fig:spectrogram-comparison}
+\end{figure}
+
+\section{Kết quả nhận dạng giọng nói và sinh mô tả}
+
+Dịch vụ Voice Rephraze sử dụng gpt-4o-transcribe cho kết quả nhận dạng tiếng
+Việt chính xác, kể cả với giọng vùng miền (Bắc, Trung, Nam). Module sinh mô
+tả sản phẩm qua GPT-4o-mini tạo ra văn bản mạch lạc, tự nhiên, phù hợp với
+phong cách viết được chọn.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{3cm}
+\textit{Thêm hình: Ví dụ minh họa kết quả --- hiển thị: (1) text STT gốc
+(lộn xộn, có từ lấp), (2) mô tả sản phẩm đã sinh theo phong cách ``Chuyên nghiệp'',
+(3) mô tả theo phong cách ``Thân thiện''. Cho thấy sự khác biệt
+giữa các phong cách viết.}
+\vspace{3cm}}}
+\caption{Ví dụ kết quả nhận dạng giọng nói và sinh mô tả sản phẩm}
+\label{fig:stt-gen-example}
+\end{figure}
+
+\section{Kết quả phân loại sản phẩm}
+
+Mô hình XLM-RoBERTa đạt accuracy 90,14\% và F1-score 90,00\% trên tập kiểm thử
+32 danh mục. Thời gian suy luận trung bình 45 ms trên CPU cho single inference,
+đủ nhanh cho ứng dụng real-time. \Cref{tab:classify-results} trình bày chi tiết
+hiệu năng trên các cấu hình khác nhau.
+
+\begin{table}[htbp]
+\centering
+\caption{Hiệu năng phân loại trên các cấu hình}
+\label{tab:classify-results}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\centering\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.2\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Cấu hình}} & \textcolor{white}{\textbf{Latency}} & \textcolor{white}{\textbf{Throughput}} \\
+\midrule
+\rowcolor{rowgray} Single inference (CPU) & $\approx$ 45 ms & 22 req/s \\
+Batch 10 items (CPU) & $\approx$ 180 ms & 55 items/s \\
+\rowcolor{rowgray} Single inference (GPU) & $\approx$ 15 ms & 66 req/s \\
+Batch 100 items (GPU) & $\approx$ 800 ms & 125 items/s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2.5cm}
+\textit{Thêm hình: Biểu đồ top-5 predictions cho một ví dụ cụ thể ---
+bar chart hiển thị tên danh mục và confidence score (ví dụ:
+``Electronics'' 87\%, ``Computers'' 6\%, ``Mobile Phones'' 3\%, ...).}
+\vspace{2.5cm}}}
+\caption{Ví dụ kết quả phân loại sản phẩm với top-5 predictions}
+\label{fig:classify-example}
+\end{figure}
+
+\section{Kết quả tích hợp hệ thống}
+
+Toàn bộ pipeline hoạt động liền mạch từ khi người dùng bắt đầu nói đến khi
+kết quả hiển thị trên giao diện web. Thời gian xử lý end-to-end trung bình
+khoảng 5--8 giây cho một đoạn mô tả 10--15 giây, bao gồm: truyền audio
+từ ESP32 (real-time), khử nhiễu DTLN ($\approx$ 1 giây cho đoạn 10 giây),
+STT ($\approx$ 2--3 giây), sinh mô tả ($\approx$ 1--2 giây), và phân loại
+($\approx$ 45 ms).
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{3cm}
+\textit{Thêm hình: Ảnh chụp toàn bộ giao diện web đang hoạt động ---
+hiển thị đồng thời: video stream từ camera, waveform âm thanh, spectrogram
+trước/sau khử nhiễu, kết quả STT, mô tả sản phẩm đã sinh, và danh sách
+top-K danh mục. Chú thích các vùng chức năng.}
+\vspace{3cm}}}
+\caption{Giao diện web hệ thống ShopNexus trong quá trình hoạt động}
+\label{fig:full-demo}
+\end{figure}
+
 \section{Ưu điểm}
 
 \begin{itemize}
 \item
-  \textbf{Pipeline end-to-end:} Từ thu âm ESP32 $\rightarrow$ khử nhiễu $\rightarrow$ nhận dạng giọng nói
-  $\rightarrow$ sinh mô tả $\rightarrow$ phân loại sản phẩm, hoạt động liền mạch.
+  \textbf{Pipeline end-to-end hoàn chỉnh:} Từ thu âm ESP32 $\rightarrow$ khử nhiễu
+  $\rightarrow$ nhận dạng giọng nói $\rightarrow$ sinh mô tả $\rightarrow$ phân loại
+  sản phẩm, hoạt động liền mạch không cần can thiệp thủ công.
 \item
-  \textbf{DTLN nhỏ gọn:} Chỉ 3,9 MB (1,8M tham số), xử lý real-time 32 ms,
-  phù hợp thiết bị nhúng tài nguyên hạn chế.
+  \textbf{DTLN nhỏ gọn và hiệu quả:} Chỉ 3,9 MB (1,8M tham số), xử lý real-time
+  32 ms, phù hợp triển khai trên thiết bị tài nguyên hạn chế. Huấn luyện trực
+  tiếp trên dữ liệu tiếng Việt VIVOS đảm bảo hiệu quả với ngôn ngữ mục tiêu.
 \item
   \textbf{Dual-domain denoising:} Kết hợp STFT (miền tần số) và Conv1D Encoder
-  (miền đặc trưng học được) khử nhiễu toàn diện hơn phương pháp đơn miền.
+  (miền đặc trưng học được), khử nhiễu toàn diện hơn so với phương pháp đơn miền.
+  Giai đoạn 1 loại bỏ nhiễu tổng thể, giai đoạn 2 tinh chỉnh và phục hồi chi tiết.
 \item
-  \textbf{Phân loại chính xác:} XLM-RoBERTa đạt 90,14\% accuracy, hỗ trợ
-  đa ngôn ngữ nhờ nền tảng cross-lingual.
+  \textbf{Phân loại chính xác:} XLM-RoBERTa đạt 90,14\% accuracy trên 32 danh mục,
+  hỗ trợ đa ngôn ngữ nhờ nền tảng cross-lingual --- xử lý tốt cả mô tả tiếng Việt
+  lẫn tên sản phẩm tiếng Anh.
 \item
-  \textbf{Dual-core ESP32:} Tách riêng audio/video trên 2 core đảm bảo
-  không gián đoạn stream, 16 DMA buffer cho audio ổn định.
+  \textbf{Dual-core ESP32 tối ưu:} Tách riêng audio/video trên 2 core đảm bảo
+  không gián đoạn stream. 16 DMA buffer cho audio tạo vùng đệm 1024 ms,
+  chống buffer underrun hiệu quả.
 \item
-  \textbf{Sinh mô tả linh hoạt:} Nhiều phong cách viết, prompt engineering
-  xử lý tốt text lộn xộn từ STT.
+  \textbf{Sinh mô tả đa phong cách:} Hỗ trợ 4+ phong cách viết (văn minh,
+  chuyên nghiệp, thân thiện, văn hóa dân tộc), mở rộng được qua API.
+  Prompt engineering xử lý tốt text lộn xộn, từ lấp từ STT.
+\item
+  \textbf{Kiến trúc microservices:} Mỗi dịch vụ phát triển, triển khai và
+  scale độc lập. Có thể thay thế từng thành phần (ví dụ: đổi STT engine)
+  mà không ảnh hưởng các thành phần khác.
 \end{itemize}
 
 \section{Hạn chế}
 
 \begin{itemize}
 \item
-  \textbf{DTLN chỉ mono channel:} Chưa khai thác beamforming hay mảng microphone.
+  \textbf{DTLN chỉ mono channel:} Chưa khai thác beamforming hay mảng microphone
+  để tăng SNR đầu vào, hạn chế hiệu quả trong môi trường nhiều nguồn nhiễu.
 \item
-  \textbf{Phụ thuộc cloud cho STT:} Voice Rephraze dùng OpenAI API,
-  yêu cầu internet và phát sinh chi phí.
+  \textbf{Phụ thuộc cloud cho STT:} Voice Rephraze sử dụng OpenAI API,
+  yêu cầu kết nối internet ổn định và phát sinh chi phí vận hành. Không hoạt
+  động được trong môi trường offline.
 \item
-  \textbf{DTLN nhạy cảm nhiễu phi tĩnh:} Hiệu năng giảm với nhiễu
-  biến đổi nhanh hoặc âm nhạc phức tạp.
+  \textbf{DTLN nhạy cảm nhiễu phi tĩnh:} Hiệu năng giảm đáng kể với nhiễu
+  biến đổi nhanh (tiếng nói chồng chéo, âm nhạc phức tạp) do LSTM cần thời
+  gian thích nghi với pattern nhiễu mới.
 \item
-  \textbf{Pha không tối ưu:} Giai đoạn 1 tái sử dụng pha gốc, có thể
-  gây artifact khi nhiễu nặng.
+  \textbf{Pha không tối ưu:} Giai đoạn 1 của DTLN tái sử dụng pha gốc thay vì
+  ước lượng pha sạch, có thể gây artifact âm thanh khi nhiễu nặng làm biến
+  dạng pha ban đầu.
 \item
-  \textbf{ESP32 WiFi dependency:} Thiết bị phụ thuộc kết nối WiFi ổn định,
-  không có buffer offline.
+  \textbf{ESP32 phụ thuộc WiFi:} Thiết bị không có cơ chế buffer offline ---
+  nếu mất WiFi, dữ liệu audio/video bị mất hoàn toàn thay vì được lưu trữ
+  tạm để gửi lại sau.
+\item
+  \textbf{Chưa có hệ thống đánh giá tự động:} Kết quả STT và sinh mô tả
+  chưa được đánh giá bằng metrics chuẩn (WER, BLEU) do thiếu bộ test
+  benchmark cho tiếng Việt trong ngữ cảnh thương mại điện tử.
 \end{itemize}

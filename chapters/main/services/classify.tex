@@ -60,17 +60,18 @@ và Industrial \& Commercial.
 
 \subsection{Pipeline suy luận}
 
-\begin{enumerate}
-\item Client gửi text mô tả sản phẩm qua POST request.
-\item Validate input bằng Pydantic schema.
-\item Tokenize input (max 512 tokens) qua AutoTokenizer.
-\item Forward pass sinh logits cho 32 danh mục.
-\item Softmax $\rightarrow$ top-K predictions với category ID, name, display name, score.
-\item Trả response kèm inference time.
-\end{enumerate}
+Client gửi text mô tả sản phẩm qua POST request, input được validate bằng
+Pydantic schema để đảm bảo đúng format. Text sau đó được tokenize (tối đa
+512 tokens) qua AutoTokenizer của HuggingFace, rồi đưa qua forward pass
+để sinh logits cho 32 danh mục. Hàm softmax chuyển logits thành xác suất,
+từ đó trích xuất top-K predictions kèm theo category ID, tên danh mục,
+tên hiển thị và confidence score. Response trả về kèm inference time để
+theo dõi hiệu năng.
 
-Model được load khi khởi động qua FastAPI Lifespan Context Manager,
-tự động detect GPU (fallback CPU), set evaluation mode.
+Model được load một lần duy nhất khi khởi động qua FastAPI Lifespan Context
+Manager, tự động phát hiện GPU (fallback về CPU nếu không có) và đặt ở chế
+độ evaluation để tắt dropout và batch normalization tracking, tối ưu tốc
+độ suy luận.
 
 \subsection{Hiệu năng}
 

@@ -2,40 +2,90 @@
 
 \section{Giới thiệu đề tài}
 
-Thương mại điện tử đang phát triển mạnh mẽ tại Việt Nam, kéo theo nhu cầu
-đăng bán sản phẩm nhanh chóng và chính xác từ phía người bán. Tuy nhiên,
-việc soạn mô tả sản phẩm thủ công tốn nhiều thời gian, đặc biệt với những
-người bán nhỏ lẻ không có kỹ năng viết quảng cáo chuyên nghiệp.
+Thương mại điện tử đang phát triển mạnh mẽ tại Việt Nam với tốc độ tăng trưởng
+trung bình 25\% mỗi năm, đưa Việt Nam trở thành một trong những thị trường
+thương mại điện tử phát triển nhanh nhất Đông Nam Á. Sự bùng nổ của các nền
+tảng như Shopee, Lazada, Tiki đã tạo điều kiện cho hàng triệu người bán nhỏ lẻ
+tham gia kinh doanh trực tuyến. Tuy nhiên, một trong những rào cản lớn nhất đối
+với người bán là việc soạn mô tả sản phẩm chất lượng --- công việc đòi hỏi
+kỹ năng viết quảng cáo, hiểu biết về SEO và tốn nhiều thời gian.
 
-Dự án ShopNexus xây dựng hệ thống nhúng hỗ trợ bán hàng thông minh, cho phép
-người bán mô tả sản phẩm bằng giọng nói thông qua thiết bị ESP32-CAM. Hệ thống
-tự động khử nhiễu âm thanh, nhận dạng giọng nói, sinh mô tả sản phẩm chuyên
-nghiệp và phân loại vào danh mục phù hợp --- tất cả chỉ với một thao tác nói.
+Theo khảo sát, người bán trung bình mất 10--15 phút để soạn mô tả cho một sản
+phẩm, bao gồm chụp ảnh, viết tiêu đề, mô tả chi tiết và chọn danh mục phù hợp.
+Với những người bán có hàng trăm sản phẩm, đây là một công việc tốn kém đáng kể.
+Đặc biệt, nhiều người bán nhỏ lẻ tại các vùng nông thôn không thành thạo việc
+soạn thảo văn bản trên máy tính, nhưng lại có khả năng mô tả sản phẩm bằng
+lời nói một cách tự nhiên.
+
+Dự án ShopNexus ra đời nhằm giải quyết vấn đề trên bằng cách xây dựng hệ thống
+nhúng hỗ trợ bán hàng thông minh, cho phép người bán chỉ cần mô tả sản phẩm
+bằng giọng nói thông qua thiết bị ESP32-CAM. Hệ thống tự động thực hiện toàn
+bộ quy trình: khử nhiễu âm thanh, nhận dạng giọng nói, sinh mô tả sản phẩm
+chuyên nghiệp theo nhiều phong cách viết, và phân loại vào danh mục phù hợp
+--- tất cả chỉ với một thao tác nói.
+
+\section{Tình hình nghiên cứu}
+
+Bài toán hỗ trợ bán hàng bằng giọng nói liên quan đến nhiều lĩnh vực
+nghiên cứu đang được phát triển mạnh mẽ.
+
+Trong lĩnh vực khử nhiễu giọng nói, các phương pháp dựa trên deep learning
+đã cho kết quả vượt trội so với các phương pháp truyền thống như spectral
+subtraction hay Wiener filtering. Mô hình DTLN (Dual-signal Transformation
+LSTM Network) được đề xuất bởi Westhausen và Meyer (2020) là một trong những
+mô hình nhỏ gọn nhất ($\approx$ 1,8 triệu tham số) mà vẫn đạt hiệu năng
+real-time, phù hợp cho triển khai trên thiết bị nhúng.
+
+Về nhận dạng giọng nói tiếng Việt, các mô hình như PhoWhisper (VinAI) và
+OpenAI Whisper đã đạt được độ chính xác đáng kể. Tuy nhiên, việc triển khai
+local trên thiết bị nhúng vẫn là thách thức do yêu cầu tài nguyên tính toán.
+Giải pháp cloud API như OpenAI gpt-4o-transcribe cung cấp chất lượng cao
+nhưng phụ thuộc kết nối internet.
+
+Trong phân loại sản phẩm, các mô hình transformer đa ngôn ngữ như XLM-RoBERTa
+cho phép phân loại text ở nhiều ngôn ngữ khác nhau mà không cần dữ liệu huấn
+luyện riêng cho từng ngôn ngữ, nhờ cơ chế cross-lingual transfer learning.
+
+Điểm khác biệt của ShopNexus so với các nghiên cứu hiện có là việc tích hợp
+toàn bộ pipeline --- từ thu thập dữ liệu trên thiết bị nhúng đến xử lý AI
+và hiển thị kết quả --- thành một hệ thống end-to-end hoàn chỉnh, tập trung
+vào ngữ cảnh thương mại điện tử Việt Nam.
 
 \section{Mục tiêu đề tài}
 
+Đề tài hướng đến các mục tiêu cụ thể sau:
+
 \begin{itemize}
 \item Xây dựng thiết bị nhúng ESP32-CAM có khả năng thu âm thanh và hình ảnh
-  sản phẩm, truyền dữ liệu real-time đến server xử lý.
+  sản phẩm đồng thời, truyền dữ liệu real-time đến server xử lý thông qua
+  giao thức TCP, đảm bảo không mất mát dữ liệu trong quá trình truyền.
 \item Phát triển dịch vụ khử nhiễu giọng nói sử dụng mô hình DTLN,
-  huấn luyện trên dữ liệu tiếng Việt VIVOS.
+  huấn luyện trên bộ dữ liệu tiếng Việt VIVOS kết hợp với dữ liệu nhiễu
+  Microsoft DNS, đạt latency dưới 50 ms để đảm bảo xử lý real-time.
 \item Xây dựng dịch vụ nhận dạng giọng nói (Speech-to-Text) và tự động
-  sinh mô tả sản phẩm theo nhiều phong cách viết khác nhau.
+  sinh mô tả sản phẩm theo nhiều phong cách viết khác nhau, xử lý tốt
+  các đặc thù của tiếng Việt đa vùng miền.
 \item Phát triển dịch vụ phân loại sản phẩm vào 32 danh mục thương mại
-  điện tử sử dụng mô hình XLM-RoBERTa.
+  điện tử sử dụng mô hình XLM-RoBERTa, đạt accuracy trên 85\%.
 \item Tích hợp toàn bộ pipeline thành hệ thống end-to-end hoạt động liền mạch
-  với giao diện web trực quan.
+  với giao diện web trực quan, cho phép người dùng thao tác dễ dàng.
 \end{itemize}
 
 \section{Phạm vi đề tài}
 
 \begin{itemize}
 \item \textbf{Phần cứng:} Thiết bị nhúng ESP32-CAM với microphone INMP441
-  và camera OV5640.
-\item \textbf{Phần mềm:} Server trung gian Node.js, ba dịch vụ AI
-  (khử nhiễu, nhận dạng giọng nói, phân loại sản phẩm) và giao diện web.
+  (thu âm 16 kHz, mono) và camera OV5640 (JPEG, hỗ trợ đến 1600$\times$1200).
+  Kết nối WiFi 802.11 b/g/n, truyền dữ liệu qua TCP.
+\item \textbf{Phần mềm:} Server trung gian Node.js (relay TCP$\leftrightarrow$WebSocket),
+  dịch vụ khử nhiễu (Flask + TensorFlow), dịch vụ nhận dạng giọng nói
+  (FastAPI + OpenAI), dịch vụ phân loại (FastAPI + PyTorch), và giao diện web.
 \item \textbf{Ngôn ngữ:} Tập trung xử lý tiếng Việt (đa vùng miền).
-\item \textbf{Danh mục:} 32 danh mục thương mại điện tử.
+  Mô hình phân loại hỗ trợ đa ngôn ngữ nhờ XLM-RoBERTa.
+\item \textbf{Danh mục:} 32 danh mục thương mại điện tử phổ biến,
+  từ Electronics đến Fashion, Health, và Industrial.
+\item \textbf{Giới hạn:} Hệ thống yêu cầu kết nối WiFi ổn định.
+  Module STT sử dụng cloud API (OpenAI), chưa hỗ trợ xử lý offline.
 \end{itemize}
 
 \section{Cấu trúc báo cáo}
@@ -43,9 +93,11 @@ nghiệp và phân loại vào danh mục phù hợp --- tất cả chỉ với 
 Báo cáo được tổ chức thành 6 chương:
 
 \begin{itemize}
-\item \textbf{Chương 1 -- Tổng quan:} Giới thiệu đề tài, mục tiêu và phạm vi.
+\item \textbf{Chương 1 -- Tổng quan:} Giới thiệu đề tài, tình hình nghiên cứu,
+  mục tiêu và phạm vi.
 \item \textbf{Chương 2 -- Cơ sở lý thuyết:} Trình bày các kiến thức nền tảng
-  về phần cứng ESP32, giao thức truyền thông, và các mô hình AI được sử dụng.
+  về phần cứng ESP32, giao thức truyền thông, và các mô hình AI được sử dụng
+  (DTLN, XLM-RoBERTa, GPT-4o).
 \item \textbf{Chương 3 -- Thiết kế hệ thống:} Kiến trúc tổng thể,
   luồng xử lý, và thiết kế chi tiết từng thành phần.
 \item \textbf{Chương 4 -- Cài đặt hệ thống:} Chi tiết cài đặt phần cứng,

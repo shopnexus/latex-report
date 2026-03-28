@@ -2,25 +2,69 @@
 
 \section{Kết luận}
 
-Hệ thống ShopNexus đã xây dựng thành công pipeline xử lý AI hoàn chỉnh
-cho bài toán hỗ trợ bán hàng bằng giọng nói trên nền tảng nhúng.
-Thiết bị ESP32-CAM khai thác hiệu quả kiến trúc dual-core để thu đồng thời
-âm thanh và hình ảnh. Mô hình DTLN được huấn luyện trên dữ liệu tiếng Việt
-VIVOS cho kết quả khử nhiễu tốt với latency phù hợp real-time.
-Dịch vụ phân loại sản phẩm đạt accuracy 90,14\% trên 32 danh mục,
-đáp ứng yêu cầu ứng dụng thực tế.
+Đồ án đã xây dựng thành công hệ thống nhúng hỗ trợ bán hàng thông minh
+ShopNexus, bao gồm một pipeline xử lý AI hoàn chỉnh từ thu thập dữ liệu
+đến hiển thị kết quả. Các kết quả chính đạt được:
 
-Hệ thống đã chứng minh tính khả thi của việc kết hợp thiết bị nhúng giá rẻ
-(ESP32) với các dịch vụ AI để tạo ra giải pháp hỗ trợ bán hàng tự động,
-giúp người bán tiết kiệm thời gian soạn mô tả sản phẩm và phân loại
-chính xác vào danh mục phù hợp.
+\textbf{Về thiết bị nhúng,} ESP32-CAM khai thác hiệu quả kiến trúc dual-core
+để thu đồng thời âm thanh 16 kHz và video JPEG mà không xảy ra hiện tượng
+buffer underrun. Giao thức điều khiển camera tự thiết kế cho phép thay đổi
+21 tham số real-time từ giao diện web.
+
+\textbf{Về khử nhiễu,} mô hình DTLN được huấn luyện trên dữ liệu tiếng Việt
+VIVOS cho kết quả khử nhiễu tốt với chỉ 1,8 triệu tham số (3,9 MB) và
+latency 32 ms, phù hợp yêu cầu real-time. Kiến trúc hai giai đoạn
+(STFT + Conv1D Encoder) khử nhiễu toàn diện hơn phương pháp đơn miền.
+
+\textbf{Về nhận dạng và sinh mô tả,} dịch vụ Voice Rephraze kết hợp
+gpt-4o-transcribe (STT) và GPT-4o-mini (sinh mô tả) tạo ra mô tả sản phẩm
+chất lượng với 4+ phong cách viết. Prompt engineering xử lý hiệu quả text
+lộn xộn từ STT, bỏ qua từ lấp và lỗi phát âm.
+
+\textbf{Về phân loại sản phẩm,} XLM-RoBERTa đạt accuracy 90,14\% và F1-score
+90,00\% trên 32 danh mục thương mại điện tử, với thời gian suy luận 45 ms
+trên CPU --- đáp ứng yêu cầu ứng dụng thực tế.
+
+Nhìn tổng thể, hệ thống đã chứng minh tính khả thi của việc kết hợp thiết bị
+nhúng giá rẻ (ESP32, giá khoảng 5 USD) với các dịch vụ AI hiện đại để tạo ra
+giải pháp hỗ trợ bán hàng tự động. Người bán chỉ cần mô tả sản phẩm bằng
+giọng nói, hệ thống tự động xử lý toàn bộ quy trình còn lại --- tiết kiệm
+thời gian và nâng cao chất lượng mô tả sản phẩm.
 
 \section{Hướng phát triển}
 
+Dựa trên kết quả và hạn chế đã phân tích, nhóm đề xuất các hướng phát triển
+sau cho hệ thống ShopNexus:
+
 \begin{itemize}
-\item Triển khai PhoWhisper local để giảm phụ thuộc cloud API và chi phí.
-\item Bổ sung multi-microphone beamforming cho ESP32.
-\item Thêm windowing function trong STFT của DTLN để giảm spectral leakage.
-\item Tối ưu mô hình phân loại cho tiếng Việt (fine-tune thêm trên dữ liệu Việt).
-\item Triển khai DTLN inference trực tiếp trên Raspberry Pi 4 với TF Lite.
+\item \textbf{Triển khai PhoWhisper local:} Thay thế cloud API OpenAI bằng mô
+  hình PhoWhisper (VinAI) chạy trực tiếp trên server, giảm phụ thuộc internet
+  và chi phí vận hành. PhoWhisper được huấn luyện đặc biệt cho tiếng Việt nên
+  có thể cho kết quả tương đương hoặc tốt hơn trong ngữ cảnh Việt Nam.
+
+\item \textbf{Bổ sung multi-microphone beamforming:} Sử dụng 2--4 microphone
+  INMP441 kết hợp thuật toán beamforming (delay-and-sum hoặc MVDR) để tăng
+  SNR đầu vào trước khi đưa vào DTLN, cải thiện đáng kể chất lượng trong
+  môi trường nhiều nhiễu.
+
+\item \textbf{Cải tiến DTLN:} Thêm windowing function (Hann hoặc Hamming)
+  trong bước STFT để giảm spectral leakage. Nghiên cứu ước lượng pha sạch
+  thay vì tái sử dụng pha gốc ở giai đoạn 1, giảm artifact âm thanh.
+
+\item \textbf{Tối ưu phân loại cho tiếng Việt:} Fine-tune thêm mô hình
+  XLM-RoBERTa trên dữ liệu mô tả sản phẩm tiếng Việt thực tế từ các
+  sàn thương mại điện tử Việt Nam (Shopee, Lazada), nâng cao accuracy
+  cho các danh mục đặc thù thị trường nội địa.
+
+\item \textbf{Triển khai edge inference:} Chuyển DTLN sang TensorFlow Lite
+  và triển khai trực tiếp trên Raspberry Pi 4 hoặc thiết bị edge tương
+  đương, giảm latency mạng và cho phép hoạt động semi-offline.
+
+\item \textbf{Buffer offline cho ESP32:} Bổ sung cơ chế lưu trữ tạm audio
+  vào thẻ microSD khi mất kết nối WiFi, tự động gửi lại khi kết nối được
+  khôi phục --- đảm bảo không mất dữ liệu trong môi trường mạng không ổn định.
+
+\item \textbf{Hỗ trợ đa nền tảng:} Phát triển ứng dụng mobile (Android/iOS)
+  song song với giao diện web, cho phép người bán sử dụng microphone trên
+  điện thoại khi không có thiết bị ESP32.
 \end{itemize}
