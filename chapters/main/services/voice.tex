@@ -1,0 +1,91 @@
+% ============================================================
+% Dịch vụ nhận dạng giọng nói (Voice Rephraze Service)
+% Dùng trong: Chương 3 (Thiết kế) và Chương 4 (Cài đặt)
+% ============================================================
+
+% --- THIẾT KẾ (được \input từ analysis-design.tex) ---
+
+\newcommand{\designVoice}{%
+
+\section{Thiết kế dịch vụ nhận dạng giọng nói}
+
+Dịch vụ Voice Rephraze đảm nhận hai chức năng chính: chuyển đổi giọng nói
+thành văn bản (Speech-to-Text) và sinh mô tả sản phẩm. Cả hai được triển khai
+trên FastAPI với AsyncOpenAI client, tận dụng khả năng xử lý bất đồng bộ để
+gọi API OpenAI hiệu quả hơn.
+
+Đối với module STT, dự án sử dụng OpenAI gpt-4o-transcribe --- mô hình cloud
+API hỗ trợ nhận dạng tiếng Việt đa vùng miền với nhiều định dạng audio (WAV,
+MP3, FLAC, OGG, WebM, M4A). Module sinh mô tả sử dụng GPT-4o-mini với
+temperature 0.75 và giới hạn 600 tokens. System prompt được thiết kế để AI
+đóng vai copywriter thương mại điện tử, có khả năng trích xuất thông tin sản
+phẩm từ text lộn xộn của STT --- bỏ qua từ lấp, lặp lại và lỗi phát âm ---
+rồi viết 3--5 câu ngắn gọn theo phong cách được chọn.
+
+Hệ thống hỗ trợ nhiều phong cách viết mô tả, được lưu trữ trong SQLite và
+có thể mở rộng thông qua API. \Cref{tab:writing-styles} liệt kê các phong cách
+mặc định.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textit{Thêm hình: Sơ đồ luồng xử lý dịch vụ Voice Rephraze --- Audio đầu vào
+$\rightarrow$ gpt-4o-transcribe (STT) $\rightarrow$ raw text $\rightarrow$
+GPT-4o-mini + prompt engineering + style $\rightarrow$ mô tả sản phẩm hoàn chỉnh.
+Thể hiện cả luồng quản lý phong cách viết từ SQLite.}
+\vspace{2cm}}}
+\caption{Luồng xử lý dịch vụ nhận dạng giọng nói}
+\label{fig:voice-rephraze-flow}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Các phong cách viết mô tả sản phẩm}
+\label{tab:writing-styles}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.25\linewidth} >{\raggedright\arraybackslash}p{0.6\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Phong cách}} & \textcolor{white}{\textbf{Mô tả}} \\
+\midrule
+\rowcolor{rowgray} Văn minh & Lịch sự, trang trọng, ngôn ngữ chuẩn mực \\
+Chuyên nghiệp & Kỹ thuật, rõ ràng, tập trung thông số \\
+\rowcolor{rowgray} Thân thiện & Ấm áp, gần gũi, dễ tiếp cận \\
+Văn hóa người Tày & Yếu tố văn hóa dân tộc, hình ảnh đặc trưng \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+}% end \designVoice
+
+% --- CÀI ĐẶT (được \input từ implementation.tex) ---
+
+\newcommand{\implVoice}{%
+
+\section{Cài đặt dịch vụ nhận dạng giọng nói}
+
+\subsection{Speech-to-Text}
+
+\begin{itemize}
+\item \textbf{Mô hình:} OpenAI gpt-4o-transcribe (cloud API).
+\item \textbf{Định dạng hỗ trợ:} WAV, MP3, FLAC, OGG, WebM, M4A.
+\item \textbf{Ngôn ngữ:} Tiếng Việt (đa vùng miền).
+\item \textbf{API:} \texttt{POST /stt} -- upload file audio, trả về text.
+\end{itemize}
+
+\subsection{Sinh mô tả sản phẩm}
+
+\begin{itemize}
+\item \textbf{Mô hình:} GPT-4o-mini (temperature 0.75, max 600 tokens).
+\item \textbf{API:} \texttt{POST /gen} -- nhận \texttt{product\_description} (text từ STT)
+  và \texttt{style} (phong cách viết).
+\item \textbf{Prompt engineering:} System prompt hướng dẫn AI đóng vai copywriter
+  thương mại điện tử, trích xuất thông tin sản phẩm từ text lộn xộn của STT,
+  bỏ qua từ lấp, lặp lại, lỗi phát âm; viết 3--5 câu ngắn gọn theo phong cách yêu cầu.
+\end{itemize}
+
+\subsection{Lưu trữ phong cách viết}
+
+Các phong cách viết được lưu trong SQLite (\texttt{styles.db}) với schema đơn giản
+(id, name, description). Người dùng có thể thêm phong cách mới qua
+\texttt{POST /add-style}.
+
+}% end \implVoice

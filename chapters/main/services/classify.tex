@@ -1,0 +1,93 @@
+% ============================================================
+% Dịch vụ phân loại sản phẩm (Product Classification Service)
+% Dùng trong: Chương 3 (Thiết kế) và Chương 4 (Cài đặt)
+% ============================================================
+
+% --- THIẾT KẾ (được \input từ analysis-design.tex) ---
+
+\newcommand{\designClassify}{%
+
+\section{Thiết kế dịch vụ phân loại sản phẩm}
+
+Dịch vụ phân loại sản phẩm được xây dựng trên FastAPI 0.115, sử dụng PyTorch
+2.5.1 và HuggingFace Transformers 4.46.3. Mô hình XLM-RoBERTa được load khi
+khởi động thông qua FastAPI Lifespan Context Manager, tự động phát hiện GPU
+và fallback về CPU nếu không có, đồng thời được đặt ở chế độ evaluation để
+tối ưu hiệu năng suy luận.
+
+Dịch vụ cung cấp hai endpoint phân loại chính: \texttt{POST /classify} cho
+phân loại đơn lẻ với kết quả top-K predictions, và \texttt{POST /classify/batch}
+cho xử lý hàng loạt tối đa 100 items với batch\_size 32. Ngoài ra, các endpoint
+phụ trợ bao gồm \texttt{GET /categories} để lấy danh sách 32 danh mục,
+\texttt{GET /model-info} để truy vấn metadata mô hình, và \texttt{GET /health}
+để kiểm tra sức khỏe dịch vụ.
+
+\begin{table}[htbp]
+\centering
+\caption{API endpoints dịch vụ phân loại}
+\label{tab:classify-api}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\raggedright\arraybackslash}p{0.55\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Endpoint}} & \textcolor{white}{\textbf{Chức năng}} \\
+\midrule
+\rowcolor{rowgray} \texttt{POST /classify} & Phân loại 1 sản phẩm, trả top-K predictions \\
+\texttt{POST /classify/batch} & Batch tối đa 100 items (batch\_size=32) \\
+\rowcolor{rowgray} \texttt{GET /categories} & Danh sách 32 danh mục \\
+\texttt{GET /model-info} & Metadata và metrics mô hình \\
+\rowcolor{rowgray} \texttt{GET /health} & Health check \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Hệ thống phân loại sản phẩm vào 32 danh mục thương mại điện tử, bao gồm:
+Electronics, Computers \& Networking, Mobile Phones \& Tablets, Fashion \& Clothing,
+Shoes \& Footwear, Bags \& Luggage, Watches, Jewelry, Fashion Accessories,
+Beauty \& Personal Care, Health \& Wellness, Sports \& Outdoors, Home Furniture,
+Home Decor \& Lighting, Kitchen \& Dining, Bedding \& Bath, Large Appliances,
+Small Appliances, Grocery \& Food, Baby \& Maternity, Toys \& Games, Books \& Media,
+Stationery \& Office Supplies, Pet Supplies, Automotive \& Motorcycle,
+Tools \& Hardware, Garden \& Outdoor Living, Musical Instruments,
+Video Games \& Gaming, Software \& Digital Goods, Arts \& Crafts,
+và Industrial \& Commercial.
+
+}% end \designClassify
+
+% --- CÀI ĐẶT (được \input từ implementation.tex) ---
+
+\newcommand{\implClassify}{%
+
+\section{Cài đặt dịch vụ phân loại sản phẩm}
+
+\subsection{Pipeline suy luận}
+
+\begin{enumerate}
+\item Client gửi text mô tả sản phẩm qua POST request.
+\item Validate input bằng Pydantic schema.
+\item Tokenize input (max 512 tokens) qua AutoTokenizer.
+\item Forward pass sinh logits cho 32 danh mục.
+\item Softmax $\rightarrow$ top-K predictions với category ID, name, display name, score.
+\item Trả response kèm inference time.
+\end{enumerate}
+
+Model được load khi khởi động qua FastAPI Lifespan Context Manager,
+tự động detect GPU (fallback CPU), set evaluation mode.
+
+\subsection{Hiệu năng}
+
+\begin{table}[htbp]
+\centering
+\caption{Benchmark hiệu năng phân loại sản phẩm}
+\label{tab:classify-benchmark}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\centering\arraybackslash}p{0.2\linewidth} >{\centering\arraybackslash}p{0.2\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Scenario}} & \textcolor{white}{\textbf{Latency}} & \textcolor{white}{\textbf{Throughput}} \\
+\midrule
+\rowcolor{rowgray} Single inference (CPU) & $\approx$ 45 ms & 22 req/s \\
+Batch 10 items (CPU) & $\approx$ 180 ms & 55 items/s \\
+\rowcolor{rowgray} Single inference (GPU) & $\approx$ 15 ms & 66 req/s \\
+Batch 100 items (GPU) & $\approx$ 800 ms & 125 items/s \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+}% end \implClassify

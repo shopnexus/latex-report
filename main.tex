@@ -17,6 +17,12 @@
 % cleveref MUST come after hyperref (loaded in thesis.cls)
 \usepackage[nameinlink]{cleveref}
 
+% Service files — each defines \design* and \impl* commands
+% Edit these files independently for team collaboration
+\input{chapters/main/services/denoise.tex}
+\input{chapters/main/services/voice.tex}
+\input{chapters/main/services/classify.tex}
+
 % Configurations
 \reporttype{BÁO CÁO ĐỒ ÁN MÔN HỌC}
 \title{XÂY DỰNG HỆ THỐNG NHÚNG HỖ TRỢ BÁN HÀNG THÔNG MINH}
