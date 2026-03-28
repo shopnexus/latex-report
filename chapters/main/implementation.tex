@@ -1,0 +1,79 @@
+\chapter{Cài đặt hệ thống}
+
+\section{Cài đặt thiết bị nhúng ESP32}
+
+\subsection{Cấu hình I2S}
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình I2S cho microphone INMP441}
+\label{tab:i2s-config}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\raggedright\arraybackslash}p{0.55\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Giá trị}} \\
+\midrule
+\rowcolor{rowgray} Chế độ & I2S\_MODE\_MASTER | I2S\_MODE\_RX \\
+Tần số lấy mẫu & 16.000 Hz \\
+\rowcolor{rowgray} Bit depth đầu vào & 32-bit (I2S native) \\
+Bit depth đầu ra & 16-bit PCM (sau chuyển đổi) \\
+\rowcolor{rowgray} Kênh & Mono (chỉ kênh trái) \\
+Số DMA buffer & 16 (tăng từ 8 để ổn định) \\
+\rowcolor{rowgray} Kích thước buffer & 1024 mẫu (64 ms mỗi buffer) \\
+Throughput & 32 KB/s ($\approx$ 256 kbps) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Chuẩn hóa tín hiệu}
+
+Microphone INMP441 có độ phân giải 18-bit, đóng gói trong word 32-bit với dữ liệu
+nằm ở các bit cao. Quá trình chuẩn hóa:
+
+\begin{enumerate}
+\item Đọc mẫu 32-bit raw từ I2S DMA buffer.
+\item Dịch phải 14 bit: \texttt{val = raw\_samples[i] >> 14}.
+\item Cắt ngưỡng vào phạm vi 16-bit signed: $[-32768, 32767]$.
+\item Lưu dưới dạng \texttt{int16\_t} để truyền qua TCP.
+\end{enumerate}
+
+\subsection{Pipeline streaming video}
+
+Camera OV5640 được cấu hình chụp JPEG với double buffering (2 frame buffer).
+XCLK mặc định 12 MHz, chất lượng JPEG có thể điều chỉnh (10--63).
+
+Mỗi frame được truyền qua TCP port 3001 với giao thức:
+\texttt{[Length (4 bytes LE)][JPEG Data (variable)]}.
+Buffer tĩnh 250 KB được cấp phát một lần trên PSRAM (hoặc heap) để tránh
+phân mảnh bộ nhớ.
+
+\subsection{Giao thức điều khiển camera}
+
+Trình duyệt gửi lệnh điều khiển qua WebSocket đến server trung gian,
+server chuyển tiếp qua TCP đến ESP32 với format:
+\texttt{[0xA5][ID (1 byte)][Value (1 byte)]}.
+
+\begin{table}[htbp]
+\centering
+\caption{Các lệnh điều khiển camera chính}
+\label{tab:camera-commands}
+\begin{tabular}{>{\centering\arraybackslash}p{0.08\linewidth} >{\raggedright\arraybackslash}p{0.3\linewidth} >{\raggedright\arraybackslash}p{0.45\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{ID}} & \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Phạm vi}} \\
+\midrule
+\rowcolor{rowgray} 1 & JPEG Quality & 10--63 (thấp = chất lượng cao hơn) \\
+2 & Frame Size & QQVGA đến UXGA (14 mức) \\
+\rowcolor{rowgray} 3--5 & Brightness, Contrast, Saturation & $-2$ đến $+2$ \\
+6--9 & AWB, AEC, AGC, AEC2 & 0/1 (bật/tắt) \\
+\rowcolor{rowgray} 16--17 & H-Mirror, V-Flip & 0/1 \\
+20 & XCLK Frequency & 6/8/12/16/24 MHz \\
+\rowcolor{rowgray} 21 & Frame Buffer Count & 1--4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ESP32 phản hồi cài đặt hiện tại qua packet với magic header \texttt{0xBEEF}
+theo format: \texttt{[0xBE][0xEF][ID][Value]...} cho tất cả 21 tham số.
+
+\implDenoise
+\implVoice
+\implClassify

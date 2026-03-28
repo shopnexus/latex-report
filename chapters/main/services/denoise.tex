@@ -1,0 +1,78 @@
+% ============================================================
+% Dịch vụ khử nhiễu (Noise Reduction Service)
+% Dùng trong: Chương 3 (Thiết kế) và Chương 4 (Cài đặt)
+% ============================================================
+
+% --- THIẾT KẾ (được \input từ analysis-design.tex) ---
+
+\newcommand{\designDenoise}{%
+
+\section{Thiết kế dịch vụ khử nhiễu}
+
+Dịch vụ khử nhiễu được thiết kế theo kiến trúc layered gồm 3 tầng: API,
+Service và Model. Tầng API tiếp nhận file WAV qua endpoint
+\texttt{POST /denoise} (multipart/form-data, tối đa 50 MB) và cung cấp
+endpoint \texttt{GET /health} để giám sát trạng thái. Tầng Service chịu trách
+nhiệm tiền xử lý audio (validate sample rate, chuyển stereo sang mono) và hậu
+xử lý kết quả. Tầng Model quản lý mô hình DTLN theo Singleton Pattern --- model
+được load một lần duy nhất khi khởi động và cache trong bộ nhớ, tránh chi phí
+khởi tạo lặp lại cho mỗi request.
+
+Framework được chọn là Flask 2.3+ kết hợp TensorFlow 2.13+, phù hợp với yêu
+cầu xử lý đồng bộ của pipeline khử nhiễu vì mỗi request cần chờ model xử lý
+xong trước khi trả kết quả.
+
+\begin{figure}[htbp]
+\centering
+\fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
+\textit{Thêm hình: Sơ đồ kiến trúc layered dịch vụ khử nhiễu --- 3 tầng:
+API Layer (Flask endpoints) $\rightarrow$ Service Layer (tiền/hậu xử lý audio)
+$\rightarrow$ Model Layer (DTLN Singleton). Thể hiện luồng request từ client
+qua từng tầng.}
+\vspace{2cm}}}
+\caption{Kiến trúc dịch vụ khử nhiễu}
+\label{fig:denoise-architecture}
+\end{figure}
+
+}% end \designDenoise
+
+% --- CÀI ĐẶT (được \input từ implementation.tex) ---
+
+\newcommand{\implDenoise}{%
+
+\section{Cài đặt dịch vụ khử nhiễu}
+
+\subsection{Huấn luyện trên VIVOS}
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình huấn luyện DTLN trên VIVOS}
+\label{tab:training-config}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.3\linewidth} >{\centering\arraybackslash}p{0.2\linewidth} >{\raggedright\arraybackslash}p{0.35\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Tham số}} & \textcolor{white}{\textbf{Giá trị}} & \textcolor{white}{\textbf{Giải thích}} \\
+\midrule
+\rowcolor{rowgray} Dữ liệu sạch & VIVOS & Tiếng Việt, $>$ 1 GB \\
+Dữ liệu nhiễu & Microsoft DNS & Kết hợp random SNR \\
+\rowcolor{rowgray} Batch size & 32 & Cân bằng GPU/gradient \\
+Độ dài đoạn & 3 giây & Phù hợp VIVOS (3--5s) \\
+\rowcolor{rowgray} Epoch tối đa & 50 & Kết hợp dừng sớm \\
+Learning rate & $10^{-3}$ & ReduceLROnPlateau \\
+\rowcolor{rowgray} Early Stopping & 10 epoch & Tránh overfitting \\
+Optimizer & Adam, clipnorm=3.0 & Tránh bùng nổ gradient \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Pipeline xử lý khử nhiễu}
+
+Luồng xử lý khi nhận request:
+\begin{enumerate}
+\item Đọc file WAV qua SoundFile, validate sample rate (16 kHz).
+\item Convert stereo$\rightarrow$mono (nếu cần), cast sang float32.
+\item Thêm batch dimension, chạy \texttt{model.predict()}.
+\item Clip output vào $[-1, 1]$, ghi file WAV đã khử nhiễu.
+\item Trả file qua HTTP response, xóa file tạm.
+\end{enumerate}
+
+}% end \implDenoise

@@ -1,0 +1,57 @@
+\chapter{Tổng quan}
+
+\section{Giới thiệu đề tài}
+
+Thương mại điện tử đang phát triển mạnh mẽ tại Việt Nam, kéo theo nhu cầu
+đăng bán sản phẩm nhanh chóng và chính xác từ phía người bán. Tuy nhiên,
+việc soạn mô tả sản phẩm thủ công tốn nhiều thời gian, đặc biệt với những
+người bán nhỏ lẻ không có kỹ năng viết quảng cáo chuyên nghiệp.
+
+Dự án ShopNexus xây dựng hệ thống nhúng hỗ trợ bán hàng thông minh, cho phép
+người bán mô tả sản phẩm bằng giọng nói thông qua thiết bị ESP32-CAM. Hệ thống
+tự động khử nhiễu âm thanh, nhận dạng giọng nói, sinh mô tả sản phẩm chuyên
+nghiệp và phân loại vào danh mục phù hợp --- tất cả chỉ với một thao tác nói.
+
+\section{Mục tiêu đề tài}
+
+\begin{itemize}
+\item Xây dựng thiết bị nhúng ESP32-CAM có khả năng thu âm thanh và hình ảnh
+  sản phẩm, truyền dữ liệu real-time đến server xử lý.
+\item Phát triển dịch vụ khử nhiễu giọng nói sử dụng mô hình DTLN,
+  huấn luyện trên dữ liệu tiếng Việt VIVOS.
+\item Xây dựng dịch vụ nhận dạng giọng nói (Speech-to-Text) và tự động
+  sinh mô tả sản phẩm theo nhiều phong cách viết khác nhau.
+\item Phát triển dịch vụ phân loại sản phẩm vào 32 danh mục thương mại
+  điện tử sử dụng mô hình XLM-RoBERTa.
+\item Tích hợp toàn bộ pipeline thành hệ thống end-to-end hoạt động liền mạch
+  với giao diện web trực quan.
+\end{itemize}
+
+\section{Phạm vi đề tài}
+
+\begin{itemize}
+\item \textbf{Phần cứng:} Thiết bị nhúng ESP32-CAM với microphone INMP441
+  và camera OV5640.
+\item \textbf{Phần mềm:} Server trung gian Node.js, ba dịch vụ AI
+  (khử nhiễu, nhận dạng giọng nói, phân loại sản phẩm) và giao diện web.
+\item \textbf{Ngôn ngữ:} Tập trung xử lý tiếng Việt (đa vùng miền).
+\item \textbf{Danh mục:} 32 danh mục thương mại điện tử.
+\end{itemize}
+
+\section{Cấu trúc báo cáo}
+
+Báo cáo được tổ chức thành 6 chương:
+
+\begin{itemize}
+\item \textbf{Chương 1 -- Tổng quan:} Giới thiệu đề tài, mục tiêu và phạm vi.
+\item \textbf{Chương 2 -- Cơ sở lý thuyết:} Trình bày các kiến thức nền tảng
+  về phần cứng ESP32, giao thức truyền thông, và các mô hình AI được sử dụng.
+\item \textbf{Chương 3 -- Thiết kế hệ thống:} Kiến trúc tổng thể,
+  luồng xử lý, và thiết kế chi tiết từng thành phần.
+\item \textbf{Chương 4 -- Cài đặt hệ thống:} Chi tiết cài đặt phần cứng,
+  cấu hình các dịch vụ, và triển khai pipeline xử lý.
+\item \textbf{Chương 5 -- Kết quả và đánh giá:} Kết quả đạt được,
+  phân tích ưu điểm và hạn chế của hệ thống.
+\item \textbf{Chương 6 -- Kết luận và hướng phát triển:} Tổng kết
+  và đề xuất hướng phát triển tương lai.
+\end{itemize}

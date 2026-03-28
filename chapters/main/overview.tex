@@ -1,0 +1,55 @@
+\chapter{Tổng quan dự án}
+
+\section{Giới thiệu}
+
+Dự án ShopNexus xây dựng hệ thống nhúng hỗ trợ bán hàng thông minh, cho phép
+người bán mô tả sản phẩm bằng giọng nói thông qua thiết bị ESP32-CAM. Hệ thống
+tự động khử nhiễu âm thanh, nhận dạng giọng nói, sinh mô tả sản phẩm và phân loại
+vào danh mục phù hợp.
+
+\section{Kiến trúc tổng thể}
+
+Hệ thống bao gồm 4 thành phần chính:
+
+\begin{enumerate}
+\item \textbf{Thiết bị nhúng ESP32-CAM:} Thu âm thanh (INMP441) và hình ảnh (OV5640),
+  truyền dữ liệu real-time đến server qua TCP.
+\item \textbf{Dịch vụ khử nhiễu (Noise Reduction):} Mô hình DTLN xử lý khử nhiễu
+  giọng nói, triển khai trên Flask.
+\item \textbf{Dịch vụ nhận dạng giọng nói (Voice Rephraze):} Chuyển đổi giọng nói
+  thành văn bản và sinh mô tả sản phẩm, triển khai trên FastAPI.
+\item \textbf{Dịch vụ phân loại sản phẩm (Product Classification):} Phân loại sản phẩm
+  vào 32 danh mục sử dụng XLM-RoBERTa, triển khai trên FastAPI.
+\end{enumerate}
+
+\section{Luồng xử lý chính}
+
+\begin{enumerate}
+\item ESP32 thu âm thanh từ microphone INMP441 (16-bit PCM, 16 kHz, mono) và gửi
+  qua TCP port 3002 đến server trung gian.
+\item Server trung gian (Node.js) nhận stream PCM, đóng gói thành file WAV và gửi
+  đến \textbf{Noise Reduction Service} (port 5000).
+\item Audio đã khử nhiễu được gửi đến \textbf{Voice Rephraze Service} (port 5001)
+  để chuyển thành text và sinh mô tả sản phẩm theo phong cách viết được chọn.
+\item Text mô tả được gửi đến \textbf{Product Classification Service} (port 5002)
+  để phân loại vào 1 trong 32 danh mục thương mại điện tử.
+\item Kết quả hiển thị trên giao diện web: spectrogram trước/sau khử nhiễu,
+  text nhận dạng, mô tả đã sinh, và top-K danh mục dự đoán.
+\end{enumerate}
+
+\begin{table}[htbp]
+\centering
+\caption{Tổng quan các thành phần hệ thống}
+\label{tab:system-overview}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.22\linewidth} >{\centering\arraybackslash}p{0.18\linewidth} >{\centering\arraybackslash}p{0.18\linewidth} >{\raggedright\arraybackslash}p{0.3\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thành phần}} & \textcolor{white}{\textbf{Công nghệ}} & \textcolor{white}{\textbf{Port}} & \textcolor{white}{\textbf{Vai trò}} \\
+\midrule
+\rowcolor{rowgray} ESP32-CAM & Arduino/C++ & TCP 3001, 3002 & Thu âm thanh + hình ảnh \\
+Server trung gian & Node.js + Express & 3000 & Relay TCP$\leftrightarrow$WebSocket, proxy API \\
+\rowcolor{rowgray} Noise Reduction & Flask + TensorFlow & 5000 & Khử nhiễu DTLN \\
+Voice Rephraze & FastAPI + OpenAI & 5001 & STT + sinh mô tả \\
+\rowcolor{rowgray} Product Classification & FastAPI + PyTorch & 5002 & Phân loại 32 danh mục \\
+\bottomrule
+\end{tabular}
+\end{table}

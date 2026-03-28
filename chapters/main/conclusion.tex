@@ -1,0 +1,26 @@
+\chapter{Kết luận và hướng phát triển}
+
+\section{Kết luận}
+
+Hệ thống ShopNexus đã xây dựng thành công pipeline xử lý AI hoàn chỉnh
+cho bài toán hỗ trợ bán hàng bằng giọng nói trên nền tảng nhúng.
+Thiết bị ESP32-CAM khai thác hiệu quả kiến trúc dual-core để thu đồng thời
+âm thanh và hình ảnh. Mô hình DTLN được huấn luyện trên dữ liệu tiếng Việt
+VIVOS cho kết quả khử nhiễu tốt với latency phù hợp real-time.
+Dịch vụ phân loại sản phẩm đạt accuracy 90,14\% trên 32 danh mục,
+đáp ứng yêu cầu ứng dụng thực tế.
+
+Hệ thống đã chứng minh tính khả thi của việc kết hợp thiết bị nhúng giá rẻ
+(ESP32) với các dịch vụ AI để tạo ra giải pháp hỗ trợ bán hàng tự động,
+giúp người bán tiết kiệm thời gian soạn mô tả sản phẩm và phân loại
+chính xác vào danh mục phù hợp.
+
+\section{Hướng phát triển}
+
+\begin{itemize}
+\item Triển khai PhoWhisper local để giảm phụ thuộc cloud API và chi phí.
+\item Bổ sung multi-microphone beamforming cho ESP32.
+\item Thêm windowing function trong STFT của DTLN để giảm spectral leakage.
+\item Tối ưu mô hình phân loại cho tiếng Việt (fine-tune thêm trên dữ liệu Việt).
+\item Triển khai DTLN inference trực tiếp trên Raspberry Pi 4 với TF Lite.
+\end{itemize}

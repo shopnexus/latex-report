@@ -1,0 +1,62 @@
+\chapter{Kết quả và đánh giá}
+
+\section{Kết quả đạt được}
+
+\begin{table}[htbp]
+\centering
+\caption{Tổng hợp kết quả các thành phần}
+\label{tab:results}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.25\linewidth} >{\raggedright\arraybackslash}p{0.65\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Thành phần}} & \textcolor{white}{\textbf{Kết quả}} \\
+\midrule
+\rowcolor{rowgray} ESP32-CAM & Dual-core: audio 16 kHz liên tục + video JPEG streaming, điều khiển camera real-time (21 tham số) \\
+Khử nhiễu DTLN & 1,8M tham số, 3.9 MB, 32 ms latency, huấn luyện trên VIVOS tiếng Việt \\
+\rowcolor{rowgray} Voice Rephraze & STT qua gpt-4o-transcribe + sinh mô tả qua GPT-4o-mini, 4+ phong cách viết \\
+Phân loại sản phẩm & Accuracy 90,14\%, F1 90,00\%, 32 danh mục, 45 ms/request (CPU) \\
+\rowcolor{rowgray} Server trung gian & Relay TCP$\leftrightarrow$WebSocket, proxy API, spectrogram visualization \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Ưu điểm}
+
+\begin{itemize}
+\item
+  \textbf{Pipeline end-to-end:} Từ thu âm ESP32 $\rightarrow$ khử nhiễu $\rightarrow$ nhận dạng giọng nói
+  $\rightarrow$ sinh mô tả $\rightarrow$ phân loại sản phẩm, hoạt động liền mạch.
+\item
+  \textbf{DTLN nhỏ gọn:} Chỉ 3,9 MB (1,8M tham số), xử lý real-time 32 ms,
+  phù hợp thiết bị nhúng tài nguyên hạn chế.
+\item
+  \textbf{Dual-domain denoising:} Kết hợp STFT (miền tần số) và Conv1D Encoder
+  (miền đặc trưng học được) khử nhiễu toàn diện hơn phương pháp đơn miền.
+\item
+  \textbf{Phân loại chính xác:} XLM-RoBERTa đạt 90,14\% accuracy, hỗ trợ
+  đa ngôn ngữ nhờ nền tảng cross-lingual.
+\item
+  \textbf{Dual-core ESP32:} Tách riêng audio/video trên 2 core đảm bảo
+  không gián đoạn stream, 16 DMA buffer cho audio ổn định.
+\item
+  \textbf{Sinh mô tả linh hoạt:} Nhiều phong cách viết, prompt engineering
+  xử lý tốt text lộn xộn từ STT.
+\end{itemize}
+
+\section{Hạn chế}
+
+\begin{itemize}
+\item
+  \textbf{DTLN chỉ mono channel:} Chưa khai thác beamforming hay mảng microphone.
+\item
+  \textbf{Phụ thuộc cloud cho STT:} Voice Rephraze dùng OpenAI API,
+  yêu cầu internet và phát sinh chi phí.
+\item
+  \textbf{DTLN nhạy cảm nhiễu phi tĩnh:} Hiệu năng giảm với nhiễu
+  biến đổi nhanh hoặc âm nhạc phức tạp.
+\item
+  \textbf{Pha không tối ưu:} Giai đoạn 1 tái sử dụng pha gốc, có thể
+  gây artifact khi nhiễu nặng.
+\item
+  \textbf{ESP32 WiFi dependency:} Thiết bị phụ thuộc kết nối WiFi ổn định,
+  không có buffer offline.
+\end{itemize}

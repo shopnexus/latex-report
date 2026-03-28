@@ -1,0 +1,73 @@
+% 'draft' mode can be used to speed up compilation
+\documentclass[final]{thesis}
+
+% Table packages (colors already defined in thesis.cls)
+\usepackage{booktabs,array}
+
+% Code listings for inline code
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=none,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+% cleveref MUST come after hyperref (loaded in thesis.cls)
+\usepackage[nameinlink]{cleveref}
+
+% Service files — each defines \design* and \impl* commands
+% Edit these files independently for team collaboration
+\input{chapters/main/services/denoise.tex}
+\input{chapters/main/services/voice.tex}
+\input{chapters/main/services/classify.tex}
+
+% Configurations
+\reporttype{BÁO CÁO ĐỒ ÁN MÔN HỌC}
+\title{XÂY DỰNG HỆ THỐNG NHÚNG HỖ TRỢ BÁN HÀNG THÔNG MINH}
+\defcouncil{Xây dựng các hệ thống nhúng (INT1461)}
+\supervisor{
+  Ths. Nguyễn Trọng Kiên
+}
+\groupnum{ 10:}
+\stuname{
+\begin{tabular}{ p{6cm} p{4cm} }
+Hồ Công Toản        & N22DCCN086 \\
+Nguyễn Tấn Khoa     & N22DCCN042 \\
+Đậu Văng Đăng Khoa  & N22DCCN040 \\
+Hoàng Phi Long      & N22DCCN048 \\
+\end{tabular}
+}
+
+\begin{document}
+\coverpage%
+
+\frontmatter%
+
+\input{chapters/front/declaration.tex}
+\input{chapters/front/acknowledge.tex}
+\input{chapters/front/abstract.tex}
+
+\begin{KeepFromToc}
+\tableofcontents
+\end{KeepFromToc}
+\clearpage
+\listoftables
+\clearpage
+\listoffigures
+
+\mainmatter%
+
+\input{chapters/main/introduction.tex}
+\input{chapters/main/theory.tex}
+\input{chapters/main/analysis-design.tex}
+\input{chapters/main/implementation.tex}
+\input{chapters/main/results.tex}
+\input{chapters/main/conclusion.tex}
+
+\bibliographystyle{plain}
+\bibliography{refs/example.bib}
+\nocite{*}
+
+\end{document}
