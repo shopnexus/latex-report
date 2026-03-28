@@ -36,12 +36,8 @@ LSTM Network) được đề xuất bởi Westhausen và Meyer (2020) là một 
 mô hình nhỏ gọn nhất ($\approx$ 1,8 triệu tham số) mà vẫn đạt hiệu năng
 real-time, phù hợp cho triển khai trên thiết bị nhúng.
 
-Về nhận dạng giọng nói tiếng Việt, các mô hình như PhoWhisper (VinAI) và
-OpenAI Whisper đã đạt được độ chính xác đáng kể. Tuy nhiên, việc triển khai
-local trên thiết bị nhúng vẫn là thách thức do yêu cầu tài nguyên tính toán.
-Giải pháp local như PhoWhisper-large (VinAI) cung cấp chất lượng cao cho
-tiếng Việt mà không phụ thuộc cloud API, tuy nhiên yêu cầu tài nguyên
-tính toán đáng kể (khoảng 2 GB VRAM).
+Về nhận dạng giọng nói tiếng Việt, các mô hình như PhoWhisper (VinAI) đã đạt 
+được độ chính xác đáng kể, tuy nhiên yêu cầu tài nguyên tính toán đáng kể (khoảng 2 GB VRAM).
 
 Trong phân loại sản phẩm, các mô hình transformer đa ngôn ngữ như XLM-RoBERTa
 cho phép phân loại text ở nhiều ngôn ngữ khác nhau mà không cần dữ liệu huấn
@@ -80,13 +76,12 @@ vào ngữ cảnh thương mại điện tử Việt Nam.
   Kết nối WiFi 802.11 b/g/n, truyền dữ liệu qua TCP.
 \item \textbf{Phần mềm:} Server trung gian Node.js (relay TCP$\leftrightarrow$WebSocket),
   dịch vụ khử nhiễu (Flask + TensorFlow), dịch vụ nhận dạng giọng nói
-  (FastAPI + OpenAI), dịch vụ phân loại (FastAPI + PyTorch), và giao diện web.
+  (FastAPI + PhoWhisper), dịch vụ phân loại (FastAPI + PyTorch), và giao diện web.
 \item \textbf{Ngôn ngữ:} Tập trung xử lý tiếng Việt (đa vùng miền).
   Mô hình phân loại hỗ trợ đa ngôn ngữ nhờ XLM-RoBERTa.
 \item \textbf{Danh mục:} 32 danh mục thương mại điện tử phổ biến,
   từ Electronics đến Fashion, Health, và Industrial.
 \item \textbf{Giới hạn:} Hệ thống yêu cầu kết nối WiFi ổn định.
-  Module STT sử dụng cloud API (OpenAI), chưa hỗ trợ xử lý offline.
 \end{itemize}
 
 \section{Cấu trúc báo cáo}
