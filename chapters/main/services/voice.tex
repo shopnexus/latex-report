@@ -9,30 +9,46 @@
 
 \section{Thiết kế dịch vụ nhận dạng giọng nói}
 
-Dịch vụ Voice Rephraze đảm nhận hai chức năng chính: chuyển đổi giọng nói
-thành văn bản (Speech-to-Text) và sinh mô tả sản phẩm. Cả hai được triển khai
-trên FastAPI với AsyncOpenAI client, tận dụng khả năng xử lý bất đồng bộ để
-gọi API OpenAI hiệu quả hơn.
+Dịch vụ Voice Rephraze (AI Copywriting Service) đảm nhận hai chức năng chính:
+chuyển đổi giọng nói thành văn bản (Speech-to-Text) và sinh mô tả sản phẩm
+theo phong cách viết tùy chọn. Toàn bộ dịch vụ được triển khai trong một
+file duy nhất (\texttt{main.py}) trên FastAPI, sử dụng AsyncOpenAI client
+cho các lời gọi API bất đồng bộ và HuggingFace Transformers cho xử lý
+giọng nói local.
 
-Đối với module STT, dự án sử dụng OpenAI gpt-4o-transcribe --- mô hình cloud
-API hỗ trợ nhận dạng tiếng Việt đa vùng miền với nhiều định dạng audio (WAV,
-MP3, FLAC, OGG, WebM, M4A). Module sinh mô tả sử dụng GPT-4o-mini với
-temperature 0.75 và giới hạn 600 tokens. System prompt được thiết kế để AI
-đóng vai copywriter thương mại điện tử, có khả năng trích xuất thông tin sản
-phẩm từ text lộn xộn của STT --- bỏ qua từ lấp, lặp lại và lỗi phát âm ---
-rồi viết 3--5 câu ngắn gọn theo phong cách được chọn.
+Module STT sử dụng mô hình PhoWhisper-large (\texttt{vinai/PhoWhisper-large})
+--- mô hình nhận dạng giọng nói tiếng Việt do VinAI Research phát triển,
+chạy trực tiếp trên server thay vì gọi cloud API. PhoWhisper được huấn luyện
+đặc biệt cho ngữ âm và thanh điệu tiếng Việt, hỗ trợ 9 định dạng audio:
+WAV, MP3, FLAC, OGG, M4A, WebM, MP4, MPEG và MPGA. Model có kích thước
+khoảng 2 GB và được load vào VRAM khi khởi động thông qua HuggingFace
+pipeline \texttt{automatic-speech-recognition}.
 
-Hệ thống hỗ trợ nhiều phong cách viết mô tả, được lưu trữ trong SQLite và
-có thể mở rộng thông qua API. \Cref{tab:writing-styles} liệt kê các phong cách
-mặc định.
+Module sinh mô tả sử dụng GPT-4o-mini thông qua OpenAI API với temperature
+0.75 và giới hạn 600 tokens. System prompt được thiết kế cẩn thận để AI
+đóng vai chuyên gia copywriter thương mại điện tử, với các ràng buộc cụ thể:
+phân tích văn bản đầu vào từ voice-to-text (thường lộn xộn, có từ lấp như
+``à'', ``ừm'', lặp lại và lỗi phát âm), trích xuất thông tin cốt lõi về
+sản phẩm (tên, chất liệu, màu sắc, tính năng, lợi ích, đối tượng sử dụng),
+sau đó viết lại thành mô tả hoàn chỉnh 3--5 câu ngắn gọn nhưng thuyết phục.
+Một quy tắc quan trọng là AI không được bịa đặt thông tin --- chỉ sử dụng
+những gì được đề cập trong đầu vào.
+
+Hệ thống hỗ trợ nhiều phong cách viết mô tả, được lưu trữ và quản lý trong
+SQLite. Khi người dùng chọn một phong cách, hệ thống truy vấn mô tả chi tiết
+của phong cách từ database và đưa vào prompt gửi cho GPT-4o-mini, hướng dẫn
+AI viết theo đúng giọng văn yêu cầu. Nếu phong cách không tồn tại trong
+database, hệ thống sử dụng fallback ``Viết sáng tạo, tự nhiên''.
+\Cref{tab:writing-styles} liệt kê các phong cách mặc định được khởi tạo
+cùng hệ thống.
 
 \begin{figure}[htbp]
 \centering
 \fbox{\parbox{0.85\linewidth}{\centering\vspace{2cm}
 \textit{Thêm hình: Sơ đồ luồng xử lý dịch vụ Voice Rephraze --- Audio đầu vào
-$\rightarrow$ gpt-4o-transcribe (STT) $\rightarrow$ raw text $\rightarrow$
-GPT-4o-mini + prompt engineering + style $\rightarrow$ mô tả sản phẩm hoàn chỉnh.
-Thể hiện cả luồng quản lý phong cách viết từ SQLite.}
+$\rightarrow$ PhoWhisper-large (STT local) $\rightarrow$ raw text $\rightarrow$
+GPT-4o-mini + system prompt + style từ SQLite $\rightarrow$ mô tả sản phẩm
+hoàn chỉnh. Thể hiện cả luồng quản lý phong cách viết qua API.}
 \vspace{2cm}}}
 \caption{Luồng xử lý dịch vụ nhận dạng giọng nói}
 \label{fig:voice-rephraze-flow}
@@ -40,16 +56,33 @@ Thể hiện cả luồng quản lý phong cách viết từ SQLite.}
 
 \begin{table}[htbp]
 \centering
-\caption{Các phong cách viết mô tả sản phẩm}
+\caption{Các phong cách viết mô tả sản phẩm mặc định}
 \label{tab:writing-styles}
 \begin{tabular}{>{\raggedright\arraybackslash}p{0.25\linewidth} >{\raggedright\arraybackslash}p{0.6\linewidth}}
 \toprule
 \rowcolor{headerblue} \textcolor{white}{\textbf{Phong cách}} & \textcolor{white}{\textbf{Mô tả}} \\
 \midrule
-\rowcolor{rowgray} Văn minh & Lịch sự, trang trọng, ngôn ngữ chuẩn mực \\
-Chuyên nghiệp & Kỹ thuật, rõ ràng, tập trung thông số \\
-\rowcolor{rowgray} Thân thiện & Ấm áp, gần gũi, dễ tiếp cận \\
-Văn hóa người Tày & Yếu tố văn hóa dân tộc, hình ảnh đặc trưng \\
+\rowcolor{rowgray} Văn minh & Lịch sự, trang trọng, sử dụng từ ngữ chuẩn mực \\
+Chuyên nghiệp & Ngôn ngữ kỹ thuật, rõ ràng, tập trung thông số sản phẩm \\
+\rowcolor{rowgray} Thân thiện & Ấm áp, gần gũi, dễ tiếp cận người đọc \\
+Văn hóa người Tày & Yếu tố văn hóa dân tộc Tày, hình ảnh đặc trưng \\
+\rowcolor{rowgray} Funny & Giọng văn trẻ trung, vui tươi, cách diễn đạt mới lạ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{API endpoints dịch vụ Voice Rephraze}
+\label{tab:voice-api}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.3\linewidth} >{\raggedright\arraybackslash}p{0.58\linewidth}}
+\toprule
+\rowcolor{headerblue} \textcolor{white}{\textbf{Endpoint}} & \textcolor{white}{\textbf{Chức năng}} \\
+\midrule
+\rowcolor{rowgray} \texttt{POST /stt} & Upload audio, trả về text nhận dạng (PhoWhisper) \\
+\texttt{POST /gen} & Sinh mô tả sản phẩm theo phong cách (GPT-4o-mini) \\
+\rowcolor{rowgray} \texttt{GET /styles} & Danh sách tất cả phong cách viết \\
+\texttt{POST /add-style} & Thêm phong cách viết mới \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -62,30 +95,62 @@ Văn hóa người Tày & Yếu tố văn hóa dân tộc, hình ảnh đặc tr
 
 \section{Cài đặt dịch vụ nhận dạng giọng nói}
 
-\subsection{Speech-to-Text}
+\subsection{Speech-to-Text với PhoWhisper}
 
-\begin{itemize}
-\item \textbf{Mô hình:} OpenAI gpt-4o-transcribe (cloud API).
-\item \textbf{Định dạng hỗ trợ:} WAV, MP3, FLAC, OGG, WebM, M4A.
-\item \textbf{Ngôn ngữ:} Tiếng Việt (đa vùng miền).
-\item \textbf{API:} \texttt{POST /stt} -- upload file audio, trả về text.
-\end{itemize}
+Module STT sử dụng PhoWhisper-large (\texttt{vinai/PhoWhisper-large}), mô hình
+nhận dạng giọng nói tiếng Việt được phát triển bởi VinAI Research dựa trên
+kiến trúc OpenAI Whisper. Model được load thông qua HuggingFace Transformers
+pipeline (\texttt{automatic-speech-recognition}) khi server khởi động, yêu cầu
+khoảng 2 GB VRAM.
 
-\subsection{Sinh mô tả sản phẩm}
+Khi nhận request tại endpoint \texttt{POST /stt}, dịch vụ validate định dạng
+file dựa trên extension (whitelist 9 định dạng: wav, mp3, flac, ogg, m4a, webm,
+mp4, mpeg, mpga), lưu file tạm thời với prefix \texttt{temp\_} bằng
+\texttt{shutil.copyfileobj()} để stream hiệu quả không tải toàn bộ file vào
+RAM, sau đó đưa qua pipeline PhoWhisper để nhận dạng. File tạm được xóa
+ngay sau khi xử lý xong, kể cả trong trường hợp xảy ra lỗi, để tránh
+tích tụ trên disk.
 
-\begin{itemize}
-\item \textbf{Mô hình:} GPT-4o-mini (temperature 0.75, max 600 tokens).
-\item \textbf{API:} \texttt{POST /gen} -- nhận \texttt{product\_description} (text từ STT)
-  và \texttt{style} (phong cách viết).
-\item \textbf{Prompt engineering:} System prompt hướng dẫn AI đóng vai copywriter
-  thương mại điện tử, trích xuất thông tin sản phẩm từ text lộn xộn của STT,
-  bỏ qua từ lấp, lặp lại, lỗi phát âm; viết 3--5 câu ngắn gọn theo phong cách yêu cầu.
-\end{itemize}
+\subsection{Sinh mô tả sản phẩm với GPT-4o-mini}
 
-\subsection{Lưu trữ phong cách viết}
+Endpoint \texttt{POST /gen} nhận hai tham số: \texttt{product\_description}
+(text từ STT hoặc người dùng nhập trực tiếp) và \texttt{style} (tên phong cách
+viết). Dịch vụ truy vấn SQLite để lấy mô tả chi tiết của phong cách, sau đó
+xây dựng prompt gồm hai phần.
 
-Các phong cách viết được lưu trong SQLite (\texttt{styles.db}) với schema đơn giản
-(id, name, description). Người dùng có thể thêm phong cách mới qua
-\texttt{POST /add-style}.
+System prompt thiết lập persona chuyên gia copywriter thương mại điện tử với
+các ràng buộc rõ ràng: phân tích văn bản voice-to-text lộn xộn, trích xuất
+thông tin cốt lõi sản phẩm (tên, chất liệu, màu sắc, tính năng, lợi ích,
+đối tượng), viết lại thành mô tả hoàn chỉnh, không bịa đặt thông tin, loại
+bỏ từ lấp (``ừm'', ``à'') và lỗi phát âm, chỉ trả về mô tả sản phẩm thuần
+túy (không giải thích, không tiêu đề), độ dài lý tưởng 3--5 câu ngắn gọn
+nhưng thuyết phục.
+
+User prompt cung cấp cấu trúc hai bước: bước 1 --- xác định thông tin sản phẩm
+từ văn bản đầu vào, bước 2 --- viết lại theo phong cách được chỉ định. Lời gọi
+API sử dụng AsyncOpenAI client với model \texttt{gpt-4o-mini}, temperature 0.75
+(cân bằng giữa sáng tạo và nhất quán) và max\_tokens 600.
+
+\subsection{Quản lý phong cách viết}
+
+Phong cách viết được lưu trữ trong SQLite (\texttt{styles.db}) với schema
+gồm 3 trường: \texttt{id} (auto-increment), \texttt{name} (UNIQUE, NOT NULL)
+và \texttt{description} (NOT NULL). Khi khởi động, nếu bảng rỗng, hệ thống
+tự động khởi tạo 5 phong cách mặc định.
+
+Người dùng có thể thêm phong cách mới qua \texttt{POST /add-style} với
+hai trường \texttt{name} và \texttt{description}. Ràng buộc UNIQUE trên
+\texttt{name} ngăn trùng lặp, trả về lỗi 400 nếu tên đã tồn tại.
+Tất cả truy vấn SQL sử dụng parameterized query để chống SQL injection.
+Endpoint \texttt{GET /styles} trả về danh sách tất cả phong cách hiện có
+để giao diện web hiển thị cho người dùng lựa chọn.
+
+\subsection{Công nghệ và dependencies}
+
+Dịch vụ yêu cầu Python $\geq$ 3.14 với các dependencies chính: FastAPI
+(web framework), OpenAI SDK (gọi GPT-4o-mini bất đồng bộ), HuggingFace
+Transformers + PyTorch (load và chạy PhoWhisper), python-dotenv (quản lý
+biến môi trường), python-multipart (xử lý file upload), và Uvicorn
+(ASGI server). Server lắng nghe tại port 5001 trên tất cả interfaces.
 
 }% end \implVoice

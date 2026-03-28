@@ -1,20 +1,34 @@
-\section{Các mô hình OpenAI}
+\section{Mô hình PhoWhisper}
 
-\subsection{GPT-4o-transcribe}
+PhoWhisper là bộ mô hình nhận dạng giọng nói tiếng Việt được phát triển
+bởi VinAI Research, dựa trên kiến trúc OpenAI Whisper và được fine-tune
+trên dữ liệu tiếng Việt quy mô lớn. Mô hình hỗ trợ nhận dạng chính xác
+các đặc thù ngữ âm tiếng Việt bao gồm 6 thanh điệu, các âm đặc trưng
+và sự khác biệt giữa giọng vùng miền (Bắc, Trung, Nam).
 
-GPT-4o-transcribe là mô hình Speech-to-Text mới nhất của OpenAI,
-kế thừa và cải tiến từ Whisper. Mô hình hỗ trợ nhận dạng tiếng Việt
-đa vùng miền với độ chính xác cao, hỗ trợ nhiều định dạng audio
-(WAV, MP3, FLAC, OGG, WebM, M4A).
+Dự án sử dụng phiên bản PhoWhisper-large (\texttt{vinai/PhoWhisper-large}),
+mô hình lớn nhất trong bộ PhoWhisper với kích thước khoảng 2 GB. Model
+được triển khai local trên server thông qua HuggingFace Transformers
+pipeline \texttt{automatic-speech-recognition}, không phụ thuộc cloud API.
+So với phiên bản nhỏ hơn (PhoWhisper-tiny), phiên bản large cho kết quả
+nhận dạng chính xác hơn đáng kể, đặc biệt với giọng vùng miền và môi
+trường có nhiễu.
 
-Trong dự án, lịch sử phát triển module STT trải qua:
-PhoWhisper-tiny (local) $\rightarrow$ whisper-1 (OpenAI) $\rightarrow$ gpt-4o-transcribe,
-với mỗi bước nâng cấp cải thiện đáng kể chất lượng nhận dạng tiếng Việt.
+Trong quá trình phát triển, module STT đã trải qua nhiều lần nâng cấp:
+PhoWhisper-tiny (local, nhẹ nhưng accuracy thấp) $\rightarrow$ whisper-1
+(OpenAI cloud, accuracy tốt nhưng phụ thuộc internet) $\rightarrow$
+PhoWhisper-large (local, accuracy cao và không phụ thuộc cloud).
 
-\subsection{GPT-4o-mini}
+\section{Mô hình GPT-4o-mini}
 
-GPT-4o-mini là mô hình ngôn ngữ lớn (LLM) nhỏ gọn của OpenAI,
-được sử dụng để sinh mô tả sản phẩm từ text nhận dạng giọng nói.
-Mô hình có khả năng hiểu ngữ cảnh, xử lý text lộn xộn từ STT
-(từ lấp, lặp lại, lỗi phát âm) và sinh văn bản mạch lạc theo
-phong cách viết được chỉ định.
+GPT-4o-mini là mô hình ngôn ngữ lớn (LLM) nhỏ gọn và tiết kiệm chi phí
+của OpenAI, được thiết kế cho các tác vụ không yêu cầu mô hình đầy đủ
+GPT-4o. Trong dự án, GPT-4o-mini được sử dụng để sinh mô tả sản phẩm
+từ text nhận dạng giọng nói thông qua OpenAI API.
+
+Mô hình có khả năng hiểu ngữ cảnh sâu, cho phép xử lý hiệu quả text
+lộn xộn từ STT --- nhận diện từ lấp (``ừm'', ``à''), bỏ qua các đoạn
+lặp lại và lỗi phát âm, trích xuất thông tin cốt lõi về sản phẩm và
+sinh văn bản mạch lạc theo phong cách viết được chỉ định. Với temperature
+0.75 và giới hạn 600 tokens, mô hình cân bằng giữa tính sáng tạo (văn
+phong đa dạng) và tính nhất quán (nội dung chính xác).

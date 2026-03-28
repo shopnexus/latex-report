@@ -17,7 +17,7 @@ latency 32 ms, phù hợp yêu cầu real-time. Kiến trúc hai giai đoạn
 (STFT + Conv1D Encoder) khử nhiễu toàn diện hơn phương pháp đơn miền.
 
 \textbf{Về nhận dạng và sinh mô tả,} dịch vụ Voice Rephraze kết hợp
-gpt-4o-transcribe (STT) và GPT-4o-mini (sinh mô tả) tạo ra mô tả sản phẩm
+PhoWhisper-large (STT local) và GPT-4o-mini (sinh mô tả) tạo ra mô tả sản phẩm
 chất lượng với 4+ phong cách viết. Prompt engineering xử lý hiệu quả text
 lộn xộn từ STT, bỏ qua từ lấp và lỗi phát âm.
 
@@ -37,10 +37,10 @@ Dựa trên kết quả và hạn chế đã phân tích, nhóm đề xuất cá
 sau cho hệ thống ShopNexus:
 
 \begin{itemize}
-\item \textbf{Triển khai PhoWhisper local:} Thay thế cloud API OpenAI bằng mô
-  hình PhoWhisper (VinAI) chạy trực tiếp trên server, giảm phụ thuộc internet
-  và chi phí vận hành. PhoWhisper được huấn luyện đặc biệt cho tiếng Việt nên
-  có thể cho kết quả tương đương hoặc tốt hơn trong ngữ cảnh Việt Nam.
+\item \textbf{Thay thế GPT-4o-mini bằng LLM local:} Triển khai mô hình ngôn ngữ
+  local (ví dụ: Vistral, Qwen2) để sinh mô tả sản phẩm, loại bỏ hoàn toàn
+  phụ thuộc cloud API và chi phí vận hành OpenAI. Kết hợp với PhoWhisper-large
+  đã chạy local, toàn bộ pipeline sẽ hoạt động offline.
 
 \item \textbf{Bổ sung multi-microphone beamforming:} Sử dụng 2--4 microphone
   INMP441 kết hợp thuật toán beamforming (delay-and-sum hoặc MVDR) để tăng

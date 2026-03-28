@@ -16,7 +16,7 @@ của từng thành phần.
 \midrule
 \rowcolor{rowgray} ESP32-CAM & Dual-core: audio 16 kHz liên tục + video JPEG streaming, điều khiển camera real-time (21 tham số) \\
 Khử nhiễu DTLN & 1,8M tham số, 3,9 MB, 32 ms latency, huấn luyện trên VIVOS tiếng Việt \\
-\rowcolor{rowgray} Voice Rephraze & STT qua gpt-4o-transcribe + sinh mô tả qua GPT-4o-mini, 4+ phong cách viết \\
+\rowcolor{rowgray} Voice Rephraze & STT qua PhoWhisper-large (local) + sinh mô tả qua GPT-4o-mini, 5+ phong cách viết \\
 Phân loại sản phẩm & Accuracy 90,14\%, F1 90,00\%, 32 danh mục, 45 ms/request (CPU) \\
 \rowcolor{rowgray} Server trung gian & Relay TCP$\leftrightarrow$WebSocket, proxy API, spectrogram visualization \\
 \bottomrule
@@ -56,8 +56,10 @@ giọng nói được giữ nguyên.}
 
 \section{Kết quả nhận dạng giọng nói và sinh mô tả}
 
-Dịch vụ Voice Rephraze sử dụng gpt-4o-transcribe cho kết quả nhận dạng tiếng
-Việt chính xác, kể cả với giọng vùng miền (Bắc, Trung, Nam). Module sinh mô
+Dịch vụ Voice Rephraze sử dụng PhoWhisper-large (VinAI) chạy local cho kết quả
+nhận dạng tiếng Việt chính xác, kể cả với giọng vùng miền (Bắc, Trung, Nam).
+Việc chạy local loại bỏ phụ thuộc cloud API cho STT, giảm chi phí vận hành
+và latency mạng. Module sinh mô
 tả sản phẩm qua GPT-4o-mini tạo ra văn bản mạch lạc, tự nhiên, phù hợp với
 phong cách viết được chọn.
 
@@ -168,9 +170,10 @@ top-K danh mục. Chú thích các vùng chức năng.}
   \textbf{DTLN chỉ mono channel:} Chưa khai thác beamforming hay mảng microphone
   để tăng SNR đầu vào, hạn chế hiệu quả trong môi trường nhiều nguồn nhiễu.
 \item
-  \textbf{Phụ thuộc cloud cho STT:} Voice Rephraze sử dụng OpenAI API,
-  yêu cầu kết nối internet ổn định và phát sinh chi phí vận hành. Không hoạt
-  động được trong môi trường offline.
+  \textbf{Phụ thuộc cloud cho sinh mô tả:} Module sinh mô tả sản phẩm sử dụng
+  OpenAI GPT-4o-mini API, yêu cầu kết nối internet và phát sinh chi phí vận hành.
+  Module STT (PhoWhisper) đã chạy local nhưng toàn bộ pipeline vẫn cần internet
+  cho bước sinh mô tả.
 \item
   \textbf{DTLN nhạy cảm nhiễu phi tĩnh:} Hiệu năng giảm đáng kể với nhiễu
   biến đổi nhanh (tiếng nói chồng chéo, âm nhạc phức tạp) do LSTM cần thời
